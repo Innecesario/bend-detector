@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bend Detector — Prototipo</title>
+<style>
+  /* ============================================================
+     PROTOTIPO DE VALIDACIÓN TÉCNICA
+     Objetivo: confirmar que la detección de pitch funciona bien
+     en Chrome Android antes de construir la app completa.
+     No es la UI final — es un banco de pruebas.
+     ============================================================ */
+  :root {
+    --bg:       #1C1A17;
+    --surface:  #252220;
+    --border:   #3a3630;
+    --copper:   #C9762C;
+    --copper-b: #E89348;
+    --green:    #4CAF50;
+    --red:      #E24B4A;
+    --yellow:   #F0C040;
+    --text:     #EDE6D6;
+    --muted:    #7a7468;
+    --font-display: 'Courier New', monospace;
+    --font-body:    system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    gap: 14px;
+  }
+
+  h1 {
+    font-size: 0.72rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--copper);
+    text-align: center;
+    padding-top: 8px;
+  }
+  h1 span { display: block; color: var(--muted); font-size: 0.62rem; margin-top: 4px; letter-spacing: 0.2em; }
+
+  /* ---- Big pitch readout ---- */
+  .pitch-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 100%;
+    padding: 18px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .note-name {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 18vw, 5rem);
+    font-weight: bold;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: 0.05em;
+    min-height: 1.1em;
+    text-align: center;
+  }
+  .note-name.green  { color: var(--green); }
+  .note-name.red    { color: var(--red); }
+  .note-name.yellow { color: var(--yellow); }
+
+  .freq-row {
+    display: flex;
+    gap: 24px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: var(--font-display);
+  }
+  .freq-row span { color: var(--text); }
+
+  /* ---- Cents meter ---- */
+  .cents-meter {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .cents-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+  .cents-label .val {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--text);
+  }
+  .bar-track {
+    position: relative;
+    height: 12px;
+    background: var(--bg);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  /* Green zone: ±15 cents around centre */
+  .bar-track::before {
+    content: '';
+    position: absolute;
+    left: calc(50% - 7.5%);
+    width: 15%;
+    top: 0; bottom: 0;
+    background: rgba(76,175,80,0.18);
+  }
+  /* Centre line */
+  .bar-track::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+  .bar-fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 6px;
+    border-radius: 3px;
+    background: var(--copper);
+    transform: translateX(-50%);
+    left: 50%;
+    transition: left 0.05s linear, background 0.1s;
+  }
+  .bar-fill.green  { background: var(--green); }
+  .bar-fill.red    { background: var(--red); }
+  .bar-fill.yellow { background: var(--yellow); }
+
+  .cents-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6rem;
+    color: var(--muted);
+    font-family: var(--font-display);
+    padding: 0 2px;
+  }
+
+  /* ---- Scrolling canvas ---- */
+  .canvas-wrap {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  .canvas-wrap canvas { display: block; width: 100%; }
+  .canvas-label {
+    position: absolute;
+    top: 8px; left: 12px;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ---- Debug panel ---- */
+  .debug {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.72rem;
+    font-family: var(--font-display);
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .debug strong { color: var(--copper); }
+  .debug .ok  { color: var(--green); }
+  .debug .bad { color: var(--red); }
+
+  /* ---- Start button ---- */
+  .btn-start {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(180deg, var(--copper-b), var(--copper));
+    color: #1C1A17;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #8A5420, 0 1px 0 rgba(255,255,255,0.2) inset;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-start:active { transform: translateY(2px); box-shadow: none; }
+  .btn-start:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .status-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+</style>
+</head>
+<body>
+
+<h1>Bend Detector<span>prototipo de validación técnica</span></h1>
+
+<!-- Big note display -->
+<div class="pitch-display">
+  <div class="note-name" id="noteName">--</div>
+  <div class="freq-row">
+    <span>Hz: <span id="freqHz">---</span></span>
+    <span>Claridad: <span id="clarity">---</span></span>
+    <span>Oct: <span id="octave">-</span></span>
+  </div>
+</div>
+
+<!-- Cents bar -->
+<div class="cents-meter">
+  <div class="cents-label">
+    <span>Desviación respecto a <strong id="targetLabel">A4 (440 Hz)</strong></span>
+    <span class="val"><span id="centsVal">--</span> ¢</span>
+  </div>
+  <div class="bar-track">
+    <div class="bar-fill" id="barFill"></div>
+  </div>
+  <div class="cents-ticks">
+    <span>−50</span><span>−25</span><span>0</span><span>+25</span><span>+50</span>
+  </div>
+</div>
+
+<!-- Scrolling graph -->
+<div class="canvas-wrap">
+  <span class="canvas-label">Curva de pitch · últimos 4 s</span>
+  <canvas id="graph" height="120"></canvas>
+</div>
+
+<!-- Debug info -->
+<div class="debug" id="debugPanel">
+  <strong>Estado del sistema</strong><br>
+  Esperando inicio...
+</div>
+
+<!-- Start button -->
+<button class="btn-start" id="btnStart">
+  <span class="status-dot" id="statusDot"></span>
+  Iniciar micrófono
+</button>
+
+<script>
+'use strict';
+// ============================================================
+// PITCH DETECTION — McLeod Pitch Method (MPM) simplificado
+// Implementación propia sin dependencias externas.
+// MPM es más robusto que YIN con armónicos de guitarra eléctrica.
+// Ref: "A Smarter Way to Find Pitch" — McLeod & Wyvill, 2005
+// ============================================================
+
+const BUFFER_SIZE    = 2048;   // ~46ms a 44100 Hz — equilibrio entre latencia y precisión
+const CLARITY_THRESH = 0.85;   // Por debajo de este valor descartamos la detección
+const SMOOTH_FRAMES  = 4;      // Media móvil para suavizar el pitch
+const ONSET_IGNORE   = 80;     // ms a ignorar tras inicio de nota nueva (transitorio)
+const CENTS_GREEN    = 15;     // ±cents para considerar "afinado"
+
+// Nota de referencia para el prototipo — hardcoded A4 = 440 Hz
+// En la app real el usuario seleccionará la nota objetivo
+const TARGET_NOTE = { name: 'A4', freq: 440.0 };
+
+// ---- MPM pitch detection ----
+function findPitch(buffer, sampleRate) {
+  const n = buffer.length;
+  const nsdf = new Float32Array(n);
+
+  // Normalized Square Difference Function
+  let acf0 = 0;
+  for (let i = 0; i < n; i++) acf0 += buffer[i] * buffer[i];
+  acf0 *= 2;
+
+  for (let tau = 0; tau < n; tau++) {
+    let acf = 0, sdf = 0;
+    for (let j = 0; j < n - tau; j++) {
+      acf += buffer[j] * buffer[j + tau];
+      sdf += buffer[j] * buffer[j] + buffer[j + tau] * buffer[j + tau];
+    }
+    nsdf[tau] = sdf > 0 ? 2 * acf / sdf : 0;
+  }
+
+  // Find key maxima above threshold 0.0
+  const keyMaxima = [];
+  let searchStart = 0;
+
+  // Skip the first zero crossing from lag 0
+  while (searchStart < n && nsdf[searchStart] > 0) searchStart++;
+  while (searchStart < n && nsdf[searchStart] <= 0) searchStart++;
+
+  let maxVal = -Infinity, maxPos = -1;
+  for (let i = searchStart; i < n - 1; i++) {
+    if (nsdf[i] > nsdf[i - 1] && nsdf[i] >= nsdf[i + 1]) {
+      if (nsdf[i] > maxVal) { maxVal = nsdf[i]; maxPos = i; }
+    }
+    if (nsdf[i] < 0 && maxPos >= 0) {
+      keyMaxima.push({ pos: maxPos, val: maxVal });
+      maxVal = -Infinity; maxPos = -1;
+    }
+  }
+
+  if (keyMaxima.length === 0) return { freq: 0, clarity: 0 };
+
+  // Threshold = 0.8 * global maximum
+  const globalMax = Math.max(...keyMaxima.map(k => k.val));
+  const thresh = 0.8 * globalMax;
+  const chosen = keyMaxima.find(k => k.val >= thresh);
+  if (!chosen) return { freq: 0, clarity: 0 };
+
+  // Parabolic interpolation for sub-sample accuracy
+  const tau = chosen.pos;
+  let refined = tau;
+  if (tau > 0 && tau < n - 1) {
+    const s0 = nsdf[tau - 1], s1 = nsdf[tau], s2 = nsdf[tau + 1];
+    const denom = 2 * s1 - s0 - s2;
+    if (denom !== 0) refined = tau + (s2 - s0) / (2 * denom);
+  }
+
+  return {
+    freq:    refined > 0 ? sampleRate / refined : 0,
+    clarity: chosen.val
+  };
+}
+
+// ---- Helpers ----
+function freqToNoteName(freq) {
+  if (freq <= 0) return { note: '--', octave: '-', cents: 0 };
+  const A4 = 440;
+  const semitones = 12 * Math.log2(freq / A4);
+  const rounded   = Math.round(semitones);
+  const cents     = Math.round((semitones - rounded) * 100);
+  const noteNames = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
+  const noteIdx   = ((rounded % 12) + 12) % 12;
+  const octave    = Math.floor((rounded + 9) / 12) + 4;
+  return { note: noteNames[noteIdx], octave, cents };
+}
+
+function freqToCents(freq, targetFreq) {
+  if (freq <= 0 || targetFreq <= 0) return null;
+  return 1200 * Math.log2(freq / targetFreq);
+}
+
+function centsColor(cents) {
+  if (cents === null) return 'muted';
+  const abs = Math.abs(cents);
+  if (abs <= CENTS_GREEN)  return 'green';
+  if (abs <= 35)           return 'yellow';
+  return 'red';
+}
+
+// ---- Audio pipeline ----
+let audioCtx, analyser, source, rafId;
+let smoothBuf = [];
+let lastOnsetTime = 0;
+let lastDetectedFreq = 0;
+let graphData = [];   // Array of { cents, clarity } for the scrolling graph
+
+const GRAPH_SECONDS = 4;
+let graphWidth = 0;
+
+const canvas  = document.getElementById('graph');
+const ctx2d   = canvas.getContext('2d');
+
+function resizeCanvas() {
+  graphWidth = canvas.offsetWidth;
+  canvas.width  = graphWidth * devicePixelRatio;
+  canvas.height = 120 * devicePixelRatio;
+  ctx2d.scale(devicePixelRatio, devicePixelRatio);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function drawGraph() {
+  const w = graphWidth, h = 120;
+  ctx2d.clearRect(0, 0, w, h);
+
+  // Background grid
+  ctx2d.strokeStyle = '#2a2724';
+  ctx2d.lineWidth = 0.5;
+  // Centre line (0 cents)
+  ctx2d.beginPath();
+  ctx2d.moveTo(0, h / 2); ctx2d.lineTo(w, h / 2);
+  ctx2d.stroke();
+  // ±15 cents zone
+  const pxPerCent = (h / 2) / 50;
+  const zoneY1 = h / 2 - CENTS_GREEN * pxPerCent;
+  const zoneY2 = h / 2 + CENTS_GREEN * pxPerCent;
+  ctx2d.fillStyle = 'rgba(76,175,80,0.08)';
+  ctx2d.fillRect(0, zoneY1, w, zoneY2 - zoneY1);
+
+  // Labels
+  ctx2d.font = `${9 * devicePixelRatio / devicePixelRatio}px monospace`;
+  ctx2d.fillStyle = '#3a3630';
+  ctx2d.fillText('+50¢', 4, 10);
+  ctx2d.fillText('  0¢', 4, h / 2 + 4);
+  ctx2d.fillText('-50¢', 4, h - 4);
+
+  if (graphData.length < 2) return;
+
+  // Curve
+  const maxPoints = graphData.length;
+  ctx2d.beginPath();
+  for (let i = 0; i < maxPoints; i++) {
+    const x = (i / (maxPoints - 1)) * w;
+    const c = graphData[i].cents;
+    if (c === null) continue;
+    const clamped = Math.max(-50, Math.min(50, c));
+    const y = h / 2 - clamped * pxPerCent;
+    if (i === 0 || graphData[i - 1].cents === null) ctx2d.moveTo(x, y);
+    else ctx2d.lineTo(x, y);
+  }
+  ctx2d.strokeStyle = '#C9762C';
+  ctx2d.lineWidth = 2;
+  ctx2d.stroke();
+
+  // Color the last segment by zone
+  if (graphData.length > 1) {
+    const last = graphData[graphData.length - 1];
+    if (last.cents !== null) {
+      const col = last.cents !== null && Math.abs(last.cents) <= CENTS_GREEN
+        ? '#4CAF50' : Math.abs(last.cents) <= 35 ? '#F0C040' : '#E24B4A';
+      ctx2d.beginPath();
+      const x0 = ((graphData.length - 2) / (maxPoints - 1)) * w;
+      const x1 = w;
+      const c0 = graphData[graphData.length - 2].cents || 0;
+      const c1 = last.cents;
+      ctx2d.moveTo(x0, h / 2 - Math.max(-50, Math.min(50, c0)) * pxPerCent);
+      ctx2d.lineTo(x1, h / 2 - Math.max(-50, Math.min(50, c1)) * pxPerCent);
+      ctx2d.strokeStyle = col;
+      ctx2d.lineWidth = 2.5;
+      ctx2d.stroke();
+    }
+  }
+}
+
+function updateUI(freq, clarity) {
+  const { note, octave, cents: noteCents } = freqToNoteName(freq);
+  const cents = freqToCents(freq, TARGET_NOTE.freq);
+  const color = centsColor(cents);
+
+  // Note name
+  const noteEl = document.getElementById('noteName');
+  noteEl.textContent = clarity < CLARITY_THRESH ? '--' : `${note}${octave}`;
+  noteEl.className = `note-name ${clarity >= CLARITY_THRESH ? color : ''}`;
+
+  // Freq details
+  document.getElementById('freqHz').textContent  = clarity >= CLARITY_THRESH ? freq.toFixed(1) : '---';
+  document.getElementById('clarity').textContent = (clarity * 100).toFixed(0) + '%';
+  document.getElementById('octave').textContent  = clarity >= CLARITY_THRESH ? octave : '-';
+
+  // Cents meter
+  const centsVal = clarity >= CLARITY_THRESH && cents !== null ? cents : null;
+  document.getElementById('centsVal').textContent = centsVal !== null ? (centsVal > 0 ? '+' : '') + centsVal.toFixed(1) : '--';
+
+  const barFill = document.getElementById('barFill');
+  if (centsVal !== null) {
+    const pct = 50 + Math.max(-50, Math.min(50, centsVal));
+    barFill.style.left = pct + '%';
+    barFill.className = `bar-fill ${color}`;
+  } else {
+    barFill.style.left = '50%';
+    barFill.className = 'bar-fill';
+  }
+
+  // Graph data — keep GRAPH_SECONDS worth at ~20fps = ~80 points
+  const MAX_POINTS = GRAPH_SECONDS * 20;
+  graphData.push({ cents: clarity >= CLARITY_THRESH ? centsVal : null, clarity });
+  if (graphData.length > MAX_POINTS) graphData.shift();
+  drawGraph();
+
+  // Debug
+  document.getElementById('debugPanel').innerHTML = `
+    <strong>Debug</strong><br>
+    Sample rate: <span class="ok">${audioCtx.sampleRate} Hz</span><br>
+    Buffer size: ${BUFFER_SIZE} (~${(BUFFER_SIZE / audioCtx.sampleRate * 1000).toFixed(0)} ms)<br>
+    Freq detectada: ${freq > 0 ? freq.toFixed(2) + ' Hz' : '<span class="bad">sin señal</span>'}<br>
+    Claridad: <span class="${clarity >= CLARITY_THRESH ? 'ok' : 'bad'}">${(clarity * 100).toFixed(1)}% ${clarity >= CLARITY_THRESH ? '✓' : '✗ (bajo umbral)'}</span><br>
+    Nota: ${note}${octave} | Desviación nota más cercana: ${noteCents > 0 ? '+' : ''}${noteCents}¢<br>
+    Cents vs ${TARGET_NOTE.name}: ${centsVal !== null ? (centsVal > 0 ? '+' : '') + centsVal.toFixed(1) + '¢' : 'n/d'}<br>
+    Zona: <span class="${color}">${color === 'green' ? '✓ AFINADO' : color === 'yellow' ? '~ CERCA' : '✗ DESAFINADO'}</span>
+  `;
+}
+
+function processAudio() {
+  const buffer = new Float32Array(BUFFER_SIZE);
+  analyser.getFloatTimeDomainData(buffer);
+
+  // RMS — detectar si hay señal (silencio → no procesar)
+  let rms = 0;
+  for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+  rms = Math.sqrt(rms / buffer.length);
+
+  if (rms < 0.01) {
+    // Silencio — resetear suavizado
+    smoothBuf = [];
+    updateUI(0, 0);
+    rafId = requestAnimationFrame(processAudio);
+    return;
+  }
+
+  const { freq, clarity } = findPitch(buffer, audioCtx.sampleRate);
+
+  // Smooth pitch with moving average (avoids jumps)
+  if (clarity >= CLARITY_THRESH && freq > 50 && freq < 2000) {
+    smoothBuf.push(freq);
+    if (smoothBuf.length > SMOOTH_FRAMES) smoothBuf.shift();
+  } else {
+    smoothBuf = [];
+  }
+
+  const smoothFreq = smoothBuf.length > 0
+    ? smoothBuf.reduce((a, b) => a + b, 0) / smoothBuf.length
+    : freq;
+
+  updateUI(smoothFreq, clarity);
+  rafId = requestAnimationFrame(processAudio);
+}
+
+async function startMic() {
+  const btn = document.getElementById('btnStart');
+  const dot = document.getElementById('statusDot');
+  btn.disabled = true;
+  btn.textContent = 'Conectando micrófono...';
+
+  try {
+    // AudioContext must be created on user gesture (autoplay policy)
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,  // OFF — la cancelación de eco distorsiona la guitarra
+        noiseSuppression: false,  // OFF — el "ruido" puede ser la guitarra
+        autoGainControl:  false,  // OFF — el AGC altera el pitch aparente
+        sampleRate: audioCtx.sampleRate
+      }
+    });
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = BUFFER_SIZE * 2;  // fftSize debe ser el doble del buffer que leemos
+    analyser.smoothingTimeConstant = 0;  // sin suavizado interno — lo hacemos nosotros
+
+    source = audioCtx.createMediaStreamSource(stream);
+    source.connect(analyser);
+    // NOT connecting to destination — no feedback
+
+    dot.className = 'status-dot active';
+    btn.textContent = '● Escuchando...';
+    btn.style.background = 'linear-gradient(180deg,#5a9e5c,#3d7a3f)';
+
+    processAudio();
+
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Reintentar';
+    document.getElementById('debugPanel').innerHTML =
+      `<strong>Error</strong><br><span class="bad">${err.name}: ${err.message}</span><br>
+       Asegúrate de que el navegador tiene permiso de micrófono.`;
+  }
+}
+
+document.getElementById('btnStart').addEventListener('click', startMic);
+</script>
+</body>
+</html>
