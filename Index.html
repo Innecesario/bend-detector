@@ -479,7 +479,9 @@ function drawGraph() {
   }
 }
 
-function updateUI(freq, clarity) {
+function updateUI(freq, clarity, rawFreq, rawClarity) {
+  rawFreq    = rawFreq    !== undefined ? rawFreq    : freq;
+  rawClarity = rawClarity !== undefined ? rawClarity : clarity;
   const { note, octave, cents: noteCents } = freqToNoteName(freq);
   const cents = freqToCents(freq, TARGET_NOTE.freq);
   const color = centsColor(cents);
@@ -514,20 +516,30 @@ function updateUI(freq, clarity) {
   if (graphData.length > MAX_POINTS) graphData.shift();
   drawGraph();
 
-  // Debug
+  // Debug — includes WakeLock status so it's never hidden
+  const wlStatus = !('wakeLock' in navigator)
+    ? '<span class="bad">no soportado</span>'
+    : (wakeLock && !wakeLock.released)
+      ? '<span class="ok">● activa</span>'
+      : '<span class="bad">○ inactiva (pantalla puede apagarse)</span>';
+
   document.getElementById('debugPanel').innerHTML = `
     <strong>Debug</strong><br>
+    Pantalla activa (WakeLock): ${wlStatus}<br>
     Sample rate: <span class="ok">${audioCtx.sampleRate} Hz</span><br>
     Buffer size: ${BUFFER_SIZE} (~${(BUFFER_SIZE / audioCtx.sampleRate * 1000).toFixed(0)} ms)<br>
-    Freq detectada: ${freq > 0 ? freq.toFixed(2) + ' Hz' : '<span class="bad">sin señal</span>'}<br>
-    Claridad: <span class="${clarity >= CLARITY_THRESH ? 'ok' : 'bad'}">${(clarity * 100).toFixed(1)}% ${clarity >= CLARITY_THRESH ? '✓' : '✗ (bajo umbral)'}</span><br>
-    Nota: ${note}${octave} | Desviación nota más cercana: ${noteCents > 0 ? '+' : ''}${noteCents}¢<br>
+    Freq detectada: ${rawFreq > 0 ? rawFreq.toFixed(2) + ' Hz' : '<span class="bad">sin señal</span>'}<br>
+    Claridad: <span class="${rawClarity >= CLARITY_THRESH ? 'ok' : 'bad'}">${(rawClarity * 100).toFixed(1)}% ${rawClarity >= CLARITY_THRESH ? '✓' : '✗ (bajo umbral)'}</span><br>
+    Nota: ${note}${octave} | Desviación: ${noteCents > 0 ? '+' : ''}${noteCents}¢<br>
     Cents vs ${TARGET_NOTE.name}: ${centsVal !== null ? (centsVal > 0 ? '+' : '') + centsVal.toFixed(1) + '¢' : 'n/d'}<br>
     Zona: <span class="${color}">${color === 'green' ? '✓ AFINADO' : color === 'yellow' ? '~ CERCA' : '✗ DESAFINADO'}</span>
   `;
 }
 
 function processAudio() {
+  // Guard: if mic was stopped, don't schedule next frame
+  if (!audioCtx) return;
+
   const buffer = new Float32Array(BUFFER_SIZE);
   analyser.getFloatTimeDomainData(buffer);
 
@@ -537,7 +549,6 @@ function processAudio() {
   rms = Math.sqrt(rms / buffer.length);
 
   if (rms < 0.01) {
-    // Silencio — resetear suavizado
     smoothBuf = [];
     updateUI(0, 0);
     rafId = requestAnimationFrame(processAudio);
@@ -546,8 +557,6 @@ function processAudio() {
 
   const { freq, clarity } = findPitch(buffer, audioCtx.sampleRate);
 
-  // Clarity hold: if we had a valid reading recently, keep showing it
-  // rather than blanking during short drop-outs (bend attack transients)
   const now = performance.now();
   let displayFreq = freq;
   let displayClarity = clarity;
@@ -559,9 +568,8 @@ function processAudio() {
     smoothBuf.push(freq);
     if (smoothBuf.length > SMOOTH_FRAMES) smoothBuf.shift();
   } else if (now - lastValidTime < HOLD_MS && lastValidFreq > 0) {
-    // Within hold window — use last valid values
     displayFreq    = lastValidFreq;
-    displayClarity = lastValidClarity * 0.7; // visually dim to signal hold
+    displayClarity = lastValidClarity * 0.7;
     smoothBuf = [];
   } else {
     smoothBuf = [];
@@ -571,7 +579,7 @@ function processAudio() {
     ? smoothBuf.reduce((a, b) => a + b, 0) / smoothBuf.length
     : displayFreq;
 
-  updateUI(smoothFreq, displayClarity);
+  updateUI(smoothFreq, displayClarity, freq, clarity);
   rafId = requestAnimationFrame(processAudio);
 }
 
