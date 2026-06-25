@@ -207,6 +207,20 @@
   }
   .btn-start:active { transform: translateY(2px); box-shadow: none; }
   .btn-start:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-start.listening {
+    background: linear-gradient(180deg, #5a9e5c, #3d7a3f);
+    box-shadow: 0 2px 0 #2a5c2c, 0 1px 0 rgba(255,255,255,0.2) inset;
+    color: #fff;
+  }
+  .wakelock-badge {
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    text-align: center;
+    margin-top: -6px;
+  }
+  .wakelock-badge.ok  { color: var(--green); }
+  .wakelock-badge.bad { color: var(--red); }
 
   .status-dot {
     display: inline-block;
@@ -259,11 +273,12 @@
   Esperando inicio...
 </div>
 
-<!-- Start button -->
+<!-- Start/Stop toggle button -->
 <button class="btn-start" id="btnStart">
   <span class="status-dot" id="statusDot"></span>
   Iniciar micrófono
 </button>
+<div class="wakelock-badge" id="wakeLockBadge"></div>
 
 <script>
 'use strict';
@@ -377,12 +392,9 @@ let smoothBuf = [];
 let wakeLock = null;
 
 // Re-acquire WakeLock if user returns to tab while mic is active
-// (browsers release it automatically when tab goes to background)
 document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && audioCtx && wakeLock === null) {
-    try {
-      wakeLock = await navigator.wakeLock.request('screen');
-    } catch(e) {}
+  if (document.visibilityState === 'visible' && audioCtx) {
+    await acquireWakeLock();
   }
 });
 let lastOnsetTime = 0;
@@ -534,73 +546,181 @@ function processAudio() {
 
   const { freq, clarity } = findPitch(buffer, audioCtx.sampleRate);
 
-  // Smooth pitch with moving average (avoids jumps)
+  // Clarity hold: if we had a valid reading recently, keep showing it
+  // rather than blanking during short drop-outs (bend attack transients)
+  const now = performance.now();
+  let displayFreq = freq;
+  let displayClarity = clarity;
+
   if (clarity >= CLARITY_THRESH && freq > 50 && freq < 2000) {
+    lastValidFreq    = freq;
+    lastValidClarity = clarity;
+    lastValidTime    = now;
     smoothBuf.push(freq);
     if (smoothBuf.length > SMOOTH_FRAMES) smoothBuf.shift();
+  } else if (now - lastValidTime < HOLD_MS && lastValidFreq > 0) {
+    // Within hold window — use last valid values
+    displayFreq    = lastValidFreq;
+    displayClarity = lastValidClarity * 0.7; // visually dim to signal hold
+    smoothBuf = [];
   } else {
     smoothBuf = [];
   }
 
   const smoothFreq = smoothBuf.length > 0
     ? smoothBuf.reduce((a, b) => a + b, 0) / smoothBuf.length
-    : freq;
+    : displayFreq;
 
-  updateUI(smoothFreq, clarity);
+  updateUI(smoothFreq, displayClarity);
   rafId = requestAnimationFrame(processAudio);
+}
+
+// ---- Clarity hold ----
+// When clarity drops suddenly (e.g. mid-bend transient), hold the last
+// valid pitch for up to HOLD_MS before blanking the display.
+// This prevents the UI flickering off during the bend attack.
+const HOLD_MS = 120;
+let lastValidFreq = 0;
+let lastValidClarity = 0;
+let lastValidTime = 0;
+
+function updateWakeLockBadge() {
+  const badge = document.getElementById('wakeLockBadge');
+  if (!('wakeLock' in navigator)) {
+    badge.textContent = 'Pantalla activa: no soportado en este navegador';
+    badge.className = 'wakelock-badge bad';
+  } else if (wakeLock && !wakeLock.released) {
+    badge.textContent = '● Pantalla activa';
+    badge.className = 'wakelock-badge ok';
+  } else {
+    badge.textContent = '○ Pantalla puede apagarse';
+    badge.className = 'wakelock-badge bad';
+  }
+}
+
+async function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', updateWakeLockBadge);
+    updateWakeLockBadge();
+  } catch(e) {
+    updateWakeLockBadge();
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
+  updateWakeLockBadge();
+}
+
+function resetUI() {
+  document.getElementById('noteName').textContent = '--';
+  document.getElementById('noteName').className = 'note-name';
+  document.getElementById('freqHz').textContent  = '---';
+  document.getElementById('clarity').textContent = '---';
+  document.getElementById('octave').textContent  = '-';
+  document.getElementById('centsVal').textContent = '--';
+  document.getElementById('barFill').style.left = '50%';
+  document.getElementById('barFill').className = 'bar-fill';
+  graphData = [];
+  drawGraph();
 }
 
 async function startMic() {
   const btn = document.getElementById('btnStart');
   const dot = document.getElementById('statusDot');
   btn.disabled = true;
-  btn.textContent = 'Conectando micrófono...';
+  btn.innerHTML = '<span class="status-dot" id="statusDot"></span> Conectando...';
 
   try {
-    // AudioContext must be created on user gesture (autoplay policy)
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') await audioCtx.resume();
 
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
-        echoCancellation: false,  // OFF — la cancelación de eco distorsiona la guitarra
-        noiseSuppression: false,  // OFF — el "ruido" puede ser la guitarra
-        autoGainControl:  false,  // OFF — el AGC altera el pitch aparente
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl:  false,
         sampleRate: audioCtx.sampleRate
       }
     });
 
+    // Store stream reference so we can stop tracks later
+    audioCtx._stream = stream;
+
     analyser = audioCtx.createAnalyser();
-    analyser.fftSize = BUFFER_SIZE * 2;  // fftSize debe ser el doble del buffer que leemos
-    analyser.smoothingTimeConstant = 0;  // sin suavizado interno — lo hacemos nosotros
+    analyser.fftSize = BUFFER_SIZE * 2;
+    analyser.smoothingTimeConstant = 0;
 
     source = audioCtx.createMediaStreamSource(stream);
     source.connect(analyser);
-    // NOT connecting to destination — no feedback
 
-    // Keep screen awake while listening — works on HTTPS (GitHub Pages)
-    if ('wakeLock' in navigator) {
-      try {
-        wakeLock = await navigator.wakeLock.request('screen');
-      } catch(e) {} // silently ignore if denied
-    }
+    await acquireWakeLock();
 
-    dot.className = 'status-dot active';
-    btn.textContent = '● Escuchando...';
-    btn.style.background = 'linear-gradient(180deg,#5a9e5c,#3d7a3f)';
+    btn.disabled = false;
+    btn.className = 'btn-start listening';
+    btn.innerHTML = '<span class="status-dot active"></span> Detener micrófono';
 
+    lastValidFreq = 0;
+    lastValidClarity = 0;
+    lastValidTime = 0;
     processAudio();
+    return true;
 
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = 'Reintentar';
+    btn.innerHTML = '<span class="status-dot"></span> Reintentar';
     document.getElementById('debugPanel').innerHTML =
       `<strong>Error</strong><br><span class="bad">${err.name}: ${err.message}</span><br>
        Asegúrate de que el navegador tiene permiso de micrófono.`;
+    updateWakeLockBadge();
+    return false;
   }
 }
 
-document.getElementById('btnStart').addEventListener('click', startMic);
+function stopMic() {
+  const btn = document.getElementById('btnStart');
+
+  // Stop the animation loop
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+  // Stop all mic tracks — this releases the mic indicator in the browser
+  if (audioCtx && audioCtx._stream) {
+    audioCtx._stream.getTracks().forEach(t => t.stop());
+  }
+
+  // Close AudioContext
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+
+  releaseWakeLock();
+  smoothBuf = [];
+  resetUI();
+
+  btn.className = 'btn-start';
+  btn.innerHTML = '<span class="status-dot"></span> Iniciar micrófono';
+  document.getElementById('debugPanel').innerHTML =
+    '<strong>Estado del sistema</strong><br>Micrófono detenido.';
+}
+
+let micActive = false;
+
+async function toggleMic() {
+  if (micActive) {
+    micActive = false;
+    stopMic();
+  } else {
+    // Don't flip micActive until we know the mic started successfully
+    // startMic() sets the button state itself on success/failure
+    const ok = await startMic();
+    if (ok) micActive = true;
+  }
+}
+
+document.getElementById('btnStart').addEventListener('click', toggleMic);
 </script>
 </body>
 </html>
