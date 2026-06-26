@@ -3,312 +3,684 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bend Detector — Prototipo</title>
+<title>Bend Detector</title>
 <style>
-  /* ============================================================
-     PROTOTIPO DE VALIDACIÓN TÉCNICA
-     Objetivo: confirmar que la detección de pitch funciona bien
-     en Chrome Android antes de construir la app completa.
-     No es la UI final — es un banco de pruebas.
-     ============================================================ */
-  :root {
-    --bg:       #1C1A17;
-    --surface:  #252220;
-    --border:   #3a3630;
-    --copper:   #C9762C;
-    --copper-b: #E89348;
-    --green:    #4CAF50;
-    --red:      #E24B4A;
-    --yellow:   #F0C040;
-    --text:     #EDE6D6;
-    --muted:    #7a7468;
-    --font-display: 'Courier New', monospace;
-    --font-body:    system-ui, sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px;
-    gap: 14px;
-  }
+/* ============================================================
+   BEND DETECTOR — Analizador de bends para guitarra
+   Estética: panel de rack / medidor de afinación analógico.
+   Firma visual: el VU-meter de cents como elemento central,
+   con una aguja que recorre un arco como un afinador de pedal.
+   ============================================================ */
+:root {
+  --bg:        #141210;
+  --surface:   #1E1B18;
+  --surface2:  #252220;
+  --border:    #332E28;
+  --border2:   #423C34;
+  --copper:    #C9762C;
+  --copper-b:  #E89348;
+  --copper-d:  #8A5420;
+  --green:     #4CAF50;
+  --green-d:   #2E7D32;
+  --red:       #E24B4A;
+  --yellow:    #F0C040;
+  --text:      #EDE6D6;
+  --text-2:    #A89A7C;
+  --text-3:    #6B6354;
+  --font-disp: 'Courier New', monospace;
+  --font-body: system-ui, -apple-system, sans-serif;
+  --r:         10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  h1 {
-    font-size: 0.72rem;
-    letter-spacing: 0.35em;
-    text-transform: uppercase;
-    color: var(--copper);
-    text-align: center;
-    padding-top: 8px;
-  }
-  h1 span { display: block; color: var(--muted); font-size: 0.62rem; margin-top: 4px; letter-spacing: 0.2em; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(10px, 3vw, 20px);
+  gap: clamp(10px, 2.5vh, 16px);
+  padding-bottom: 20px;
+}
 
-  /* ---- Big pitch readout ---- */
-  .pitch-display {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    width: 100%;
-    padding: 18px 16px 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-  .note-name {
-    font-family: var(--font-display);
-    font-size: clamp(3.5rem, 18vw, 5rem);
-    font-weight: bold;
-    line-height: 1;
-    color: var(--text);
-    letter-spacing: 0.05em;
-    min-height: 1.1em;
-    text-align: center;
-  }
-  .note-name.green  { color: var(--green); }
-  .note-name.red    { color: var(--red); }
-  .note-name.yellow { color: var(--yellow); }
+/* ---- Header ---- */
+.app-header {
+  width: 100%;
+  text-align: center;
+  padding-top: 6px;
+}
+.app-title {
+  font-family: var(--font-disp);
+  font-size: clamp(1rem, 5vw, 1.3rem);
+  font-weight: bold;
+  letter-spacing: 0.25em;
+  color: var(--copper);
+  text-transform: uppercase;
+}
+.app-sub {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--text-3);
+  margin-top: 3px;
+  text-transform: uppercase;
+}
 
-  .freq-row {
-    display: flex;
-    gap: 24px;
-    font-size: 0.8rem;
-    color: var(--muted);
-    font-family: var(--font-display);
-  }
-  .freq-row span { color: var(--text); }
+/* ---- Section card ---- */
+.card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: clamp(12px, 3vw, 18px);
+}
+.card-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  color: var(--text-3);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
 
-  /* ---- Cents meter ---- */
-  .cents-meter {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .cents-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.72rem;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-  }
-  .cents-label .val {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    color: var(--text);
-  }
-  .bar-track {
-    position: relative;
-    height: 12px;
-    background: var(--bg);
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-  /* Green zone: ±15 cents around centre */
-  .bar-track::before {
-    content: '';
-    position: absolute;
-    left: calc(50% - 7.5%);
-    width: 15%;
-    top: 0; bottom: 0;
-    background: rgba(76,175,80,0.18);
-  }
-  /* Centre line */
-  .bar-track::after {
-    content: '';
-    position: absolute;
-    left: 50%; top: 0; bottom: 0;
-    width: 1px;
-    background: var(--border);
-  }
-  .bar-fill {
-    position: absolute;
-    top: 0; bottom: 0;
-    width: 6px;
-    border-radius: 3px;
-    background: var(--copper);
-    transform: translateX(-50%);
-    left: 50%;
-    transition: left 0.05s linear, background 0.1s;
-  }
-  .bar-fill.green  { background: var(--green); }
-  .bar-fill.red    { background: var(--red); }
-  .bar-fill.yellow { background: var(--yellow); }
+/* ---- String selector ---- */
+.string-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.str-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  gap: 2px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.str-btn .str-num {
+  font-size: 0.6rem;
+  color: var(--text-3);
+  letter-spacing: 0.05em;
+}
+.str-btn .str-name {
+  font-family: var(--font-disp);
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  font-weight: bold;
+  color: var(--text-2);
+  line-height: 1;
+}
+.str-btn .str-hz {
+  font-size: 0.55rem;
+  color: var(--text-3);
+}
+.str-btn.active {
+  border-color: var(--copper);
+  background: rgba(201,118,44,0.12);
+}
+.str-btn.active .str-name { color: var(--copper-b); }
 
-  .cents-ticks {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.6rem;
-    color: var(--muted);
-    font-family: var(--font-display);
-    padding: 0 2px;
-  }
+/* ---- Fret selector ---- */
+.fret-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.fret-label {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.fret-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.fret-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.12s, background 0.12s;
+}
+.fret-btn:active { background: var(--border); }
+.fret-display {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-disp);
+  font-size: clamp(1.4rem, 6vw, 1.8rem);
+  font-weight: bold;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 0;
+  line-height: 1;
+}
+.fret-note {
+  font-size: 0.65rem;
+  color: var(--text-3);
+  margin-top: 3px;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
 
-  /* ---- Scrolling canvas ---- */
-  .canvas-wrap {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
-  }
-  .canvas-wrap canvas { display: block; width: 100%; }
-  .canvas-label {
-    position: absolute;
-    top: 8px; left: 12px;
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
+/* ---- Bend interval selector ---- */
+.bend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.bend-btn {
+  padding: 12px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-2);
+  font-size: clamp(0.85rem, 3.5vw, 1rem);
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  text-align: center;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  line-height: 1.3;
+}
+.bend-btn .bend-sub {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-3);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.bend-btn.active {
+  border-color: var(--copper);
+  background: rgba(201,118,44,0.12);
+  color: var(--copper-b);
+}
+.bend-btn.active .bend-sub { color: var(--copper-d); }
 
-  /* ---- Debug panel ---- */
-  .debug {
-    width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    font-size: 0.72rem;
-    font-family: var(--font-display);
-    color: var(--muted);
-    line-height: 1.8;
-  }
-  .debug strong { color: var(--copper); }
-  .debug .ok  { color: var(--green); }
-  .debug .bad { color: var(--red); }
+/* ---- Target display — shows origin → destination ---- */
+.target-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 0 10px;
+}
+.target-note {
+  font-family: var(--font-disp);
+  font-size: clamp(1.8rem, 8vw, 2.4rem);
+  font-weight: bold;
+  line-height: 1;
+}
+.target-note.origin { color: var(--text-2); }
+.target-note.dest   { color: var(--copper-b); }
+.target-arrow {
+  font-size: clamp(1.2rem, 5vw, 1.6rem);
+  color: var(--text-3);
+}
+.target-sub {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  text-align: center;
+  letter-spacing: 0.06em;
+}
 
-  /* ---- Start button ---- */
-  .btn-start {
-    width: 100%;
-    padding: 16px;
-    background: linear-gradient(180deg, var(--copper-b), var(--copper));
-    color: #1C1A17;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    box-shadow: 0 2px 0 #8A5420, 0 1px 0 rgba(255,255,255,0.2) inset;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .btn-start:active { transform: translateY(2px); box-shadow: none; }
-  .btn-start:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-start.listening {
-    background: linear-gradient(180deg, #5a9e5c, #3d7a3f);
-    box-shadow: 0 2px 0 #2a5c2c, 0 1px 0 rgba(255,255,255,0.2) inset;
-    color: #fff;
-  }
-  .wakelock-badge {
-    font-size: 0.65rem;
-    letter-spacing: 0.05em;
-    color: var(--muted);
-    text-align: center;
-    margin-top: -6px;
-  }
-  .wakelock-badge.ok  { color: var(--green); }
-  .wakelock-badge.bad { color: var(--red); }
+/* ---- Pitch readout ---- */
+.pitch-big {
+  font-family: var(--font-disp);
+  font-size: clamp(3.5rem, 16vw, 5rem);
+  font-weight: bold;
+  line-height: 1;
+  text-align: center;
+  color: var(--text-2);
+  transition: color 0.1s;
+  min-height: 1.1em;
+  letter-spacing: 0.04em;
+}
+.pitch-big.green  { color: var(--green); }
+.pitch-big.yellow { color: var(--yellow); }
+.pitch-big.red    { color: var(--red); }
+.pitch-hz {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-3);
+  font-family: var(--font-disp);
+  margin-top: 2px;
+}
 
-  .status-dot {
-    display: inline-block;
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--muted);
-    margin-right: 6px;
-    vertical-align: middle;
-  }
-  .status-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+/* ---- Cents bar ---- */
+.cents-wrap {
+  margin-top: 12px;
+}
+.cents-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cents-val-label {
+  font-family: var(--font-disp);
+  font-size: clamp(1rem, 4.5vw, 1.2rem);
+  font-weight: bold;
+  min-width: 60px;
+  text-align: right;
+  color: var(--text-2);
+}
+.cents-val-label.green  { color: var(--green); }
+.cents-val-label.yellow { color: var(--yellow); }
+.cents-val-label.red    { color: var(--red); }
+.bar-track {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  background: var(--bg);
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+/* Green zone ±15¢ */
+.bar-track::before {
+  content: '';
+  position: absolute;
+  left: calc(50% - 15%);
+  width: 30%;
+  top: 0; bottom: 0;
+  background: rgba(76,175,80,0.15);
+}
+.bar-track::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--border2);
+}
+.bar-needle {
+  position: absolute;
+  top: 2px; bottom: 2px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--copper);
+  transform: translateX(-50%);
+  left: 50%;
+  transition: left 0.06s linear, background 0.1s;
+}
+.bar-needle.green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.bar-needle.yellow { background: var(--yellow); }
+.bar-needle.red    { background: var(--red); }
+.cents-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.58rem;
+  color: var(--text-3);
+  font-family: var(--font-disp);
+  margin-top: 4px;
+  padding: 0 2px;
+}
+.zone-label {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-top: 6px;
+  min-height: 1.2em;
+}
+.zone-label.green  { color: var(--green); }
+.zone-label.yellow { color: var(--yellow); }
+.zone-label.red    { color: var(--red); }
+.zone-label.silent { color: var(--text-3); }
+
+/* ---- Hold timer ---- */
+.timer-wrap {
+  margin-top: 10px;
+}
+.timer-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+.timer-label {
+  font-size: 0.65rem;
+  color: var(--text-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.timer-count {
+  font-family: var(--font-disp);
+  font-size: 0.9rem;
+  color: var(--green);
+}
+.timer-track {
+  height: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.timer-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--green-d), var(--green));
+  border-radius: 4px;
+  transition: width 0.08s linear, background 0.2s;
+}
+
+/* ---- Scrolling graph ---- */
+.graph-wrap {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+  position: relative;
+}
+.graph-wrap canvas { display: block; width: 100%; }
+.graph-badge {
+  position: absolute;
+  top: 6px; right: 8px;
+  font-size: 0.58rem;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---- Session stats ---- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.stat-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 6px 8px;
+  text-align: center;
+}
+.stat-val {
+  font-family: var(--font-disp);
+  font-size: clamp(1.2rem, 5vw, 1.5rem);
+  font-weight: bold;
+  color: var(--copper-b);
+  line-height: 1;
+}
+.stat-lbl {
+  font-size: 0.6rem;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+.stat-sub {
+  font-size: 0.58rem;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+.btn-reset {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-3);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-reset:active { background: var(--border); }
+
+/* ---- Mic toggle button ---- */
+.btn-mic {
+  width: 100%;
+  padding: clamp(14px, 3.5vh, 18px);
+  background: linear-gradient(180deg, var(--copper-b), var(--copper));
+  color: #141210;
+  font-size: clamp(0.9rem, 4vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: var(--r);
+  cursor: pointer;
+  box-shadow: 0 2px 0 var(--copper-d), 0 1px 0 rgba(255,255,255,0.2) inset;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.15s;
+}
+.btn-mic.active {
+  background: linear-gradient(180deg, #5a9e5c, #3d7a3f);
+  box-shadow: 0 2px 0 #2a5c2c, 0 1px 0 rgba(255,255,255,0.15) inset;
+  color: #fff;
+}
+.btn-mic:active { transform: translateY(1px); box-shadow: none; }
+.mic-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+.btn-mic.active .mic-dot {
+  background: #fff;
+  box-shadow: 0 0 6px #fff;
+  animation: blink 1.4s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* ---- Status bar ---- */
+.status-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--text-3);
+  padding: 0 2px;
+}
+.status-bar .wl-ok  { color: var(--green); }
+.status-bar .wl-bad { color: var(--red); }
+
+/* ---- Flash overlay for successful bend ---- */
+.flash {
+  position: fixed;
+  inset: 0;
+  background: rgba(76,175,80,0.25);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  border-radius: 0;
+  z-index: 100;
+}
+.flash.show { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
 </style>
 </head>
 <body>
 
-<h1>Bend Detector<span>prototipo de validación técnica</span></h1>
+<div class="flash" id="flash"></div>
 
-<!-- Big note display -->
-<div class="pitch-display">
-  <div class="note-name" id="noteName">--</div>
-  <div class="freq-row">
-    <span>Hz: <span id="freqHz">---</span></span>
-    <span>Claridad: <span id="clarity">---</span></span>
-    <span>Oct: <span id="octave">-</span></span>
+<!-- Header -->
+<div class="app-header">
+  <div class="app-title">Bend Detector</div>
+  <div class="app-sub">Control de afinación · Guitarra</div>
+</div>
+
+<!-- Setup card: string + fret + bend interval -->
+<div class="card">
+  <div class="card-label">Configuración</div>
+
+  <!-- String selector -->
+  <div class="string-grid" id="stringGrid">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- Fret selector -->
+  <div class="fret-row">
+    <span class="fret-label">Traste</span>
+    <div class="fret-controls">
+      <button class="fret-btn" id="fretDown">−</button>
+      <div>
+        <div class="fret-display" id="fretDisplay">7</div>
+        <div class="fret-note" id="fretNote">B3</div>
+      </div>
+      <button class="fret-btn" id="fretUp">+</button>
+    </div>
+  </div>
+
+  <!-- Bend interval -->
+  <div style="margin-top:14px">
+    <div class="card-label">Intervalo del bend</div>
+    <div class="bend-grid">
+      <button class="bend-btn" data-semi="1">
+        ½ tono
+        <span class="bend-sub">1 traste</span>
+      </button>
+      <button class="bend-btn active" data-semi="2">
+        1 tono
+        <span class="bend-sub">2 trastes</span>
+      </button>
+      <button class="bend-btn" data-semi="3">
+        1½ tonos
+        <span class="bend-sub">3 trastes</span>
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- Cents bar -->
-<div class="cents-meter">
-  <div class="cents-label">
-    <span>Desviación respecto a <strong id="targetLabel">A4 (440 Hz)</strong></span>
-    <span class="val"><span id="centsVal">--</span> ¢</span>
+<!-- Live pitch card -->
+<div class="card">
+  <!-- Target: origin → destination -->
+  <div class="target-display">
+    <div class="target-note origin" id="originNote">B3</div>
+    <div class="target-arrow">→</div>
+    <div class="target-note dest" id="destNote">C#4</div>
   </div>
-  <div class="bar-track">
-    <div class="bar-fill" id="barFill"></div>
+  <div class="target-sub" id="targetSub">Toca el traste 7 (G) y dobla 1 tono hasta C#4</div>
+
+  <!-- Big pitch readout -->
+  <div class="pitch-big" id="pitchBig">--</div>
+  <div class="pitch-hz" id="pitchHz">--- Hz · claridad: ---%</div>
+
+  <!-- Cents bar -->
+  <div class="cents-wrap">
+    <div class="cents-bar-row">
+      <div class="cents-val-label" id="centsLabel">-- ¢</div>
+      <div class="bar-track">
+        <div class="bar-needle" id="barNeedle"></div>
+      </div>
+    </div>
+    <div class="cents-ticks">
+      <span>−50</span><span>−25</span><span>0</span><span>+25</span><span>+50</span>
+    </div>
+    <div class="zone-label silent" id="zoneLabel">—</div>
   </div>
-  <div class="cents-ticks">
-    <span>−50</span><span>−25</span><span>0</span><span>+25</span><span>+50</span>
+
+  <!-- Hold timer -->
+  <div class="timer-wrap">
+    <div class="timer-label-row">
+      <span class="timer-label">Mantener afinado (2 s)</span>
+      <span class="timer-count" id="timerCount">0 / 0</span>
+    </div>
+    <div class="timer-track">
+      <div class="timer-fill" id="timerFill"></div>
+    </div>
+  </div>
+
+  <!-- Scrolling graph -->
+  <div class="graph-wrap">
+    <canvas id="graph" height="90"></canvas>
+    <span class="graph-badge">últimos 4 s</span>
   </div>
 </div>
 
-<!-- Scrolling graph -->
-<div class="canvas-wrap">
-  <span class="canvas-label">Curva de pitch · últimos 4 s</span>
-  <canvas id="graph" height="120"></canvas>
+<!-- Session stats -->
+<div class="card">
+  <div class="card-label">Sesión</div>
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-val" id="statAttempts">0</div>
+      <div class="stat-lbl">Intentos</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="statHits">0</div>
+      <div class="stat-lbl">Conseguidos</div>
+      <div class="stat-sub" id="statPct">--%</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="statAvgCents">--</div>
+      <div class="stat-lbl">Desviación<br>media (¢)</div>
+    </div>
+  </div>
+  <button class="btn-reset" id="btnReset">Reiniciar sesión</button>
 </div>
 
-<!-- Debug info -->
-<div class="debug" id="debugPanel">
-  <strong>Estado del sistema</strong><br>
-  Esperando inicio...
-</div>
-
-<!-- Start/Stop toggle button -->
-<button class="btn-start" id="btnStart">
-  <span class="status-dot" id="statusDot"></span>
+<!-- Mic button -->
+<button class="btn-mic" id="btnMic">
+  <span class="mic-dot" id="micDot"></span>
   Iniciar micrófono
 </button>
-<div class="wakelock-badge" id="wakeLockBadge"></div>
+
+<!-- Status bar -->
+<div class="status-bar">
+  <span id="statusLeft">—</span>
+  <span id="wlStatus">—</span>
+</div>
 
 <script>
 'use strict';
+
 // ============================================================
-// PITCH DETECTION — McLeod Pitch Method (MPM) simplificado
-// Implementación propia sin dependencias externas.
-// MPM es más robusto que YIN con armónicos de guitarra eléctrica.
-// Ref: "A Smarter Way to Find Pitch" — McLeod & Wyvill, 2005
+// PITCH DETECTION — McLeod Pitch Method (MPM)
 // ============================================================
+const BUFFER_SIZE    = 2048;
+const CLARITY_THRESH = 0.85;
+const SMOOTH_FRAMES  = 4;
+const CENTS_GREEN    = 15;   // ±cents para "afinado"
+const CENTS_CLOSE    = 35;   // ±cents para "cerca"
+const HOLD_MS        = 120;  // ms a mantener última nota válida
+const GOAL_MS        = 2000; // ms a mantener en zona verde para "conseguido"
 
-const BUFFER_SIZE    = 2048;   // ~46ms a 44100 Hz — equilibrio entre latencia y precisión
-const CLARITY_THRESH = 0.85;   // Por debajo de este valor descartamos la detección
-const SMOOTH_FRAMES  = 4;      // Media móvil para suavizar el pitch
-const ONSET_IGNORE   = 80;     // ms a ignorar tras inicio de nota nueva (transitorio)
-const CENTS_GREEN    = 15;     // ±cents para considerar "afinado"
-
-// Nota de referencia para el prototipo — hardcoded A4 = 440 Hz
-// En la app real el usuario seleccionará la nota objetivo
-const TARGET_NOTE = { name: 'A4', freq: 440.0 };
-
-// ---- MPM pitch detection ----
 function findPitch(buffer, sampleRate) {
   const n = buffer.length;
   const nsdf = new Float32Array(n);
-
-  // Normalized Square Difference Function
   let acf0 = 0;
   for (let i = 0; i < n; i++) acf0 += buffer[i] * buffer[i];
   acf0 *= 2;
-
   for (let tau = 0; tau < n; tau++) {
     let acf = 0, sdf = 0;
     for (let j = 0; j < n - tau; j++) {
@@ -317,15 +689,10 @@ function findPitch(buffer, sampleRate) {
     }
     nsdf[tau] = sdf > 0 ? 2 * acf / sdf : 0;
   }
-
-  // Find key maxima above threshold 0.0
   const keyMaxima = [];
   let searchStart = 0;
-
-  // Skip the first zero crossing from lag 0
   while (searchStart < n && nsdf[searchStart] > 0) searchStart++;
   while (searchStart < n && nsdf[searchStart] <= 0) searchStart++;
-
   let maxVal = -Infinity, maxPos = -1;
   for (let i = searchStart; i < n - 1; i++) {
     if (nsdf[i] > nsdf[i - 1] && nsdf[i] >= nsdf[i + 1]) {
@@ -336,142 +703,277 @@ function findPitch(buffer, sampleRate) {
       maxVal = -Infinity; maxPos = -1;
     }
   }
-
   if (keyMaxima.length === 0) return { freq: 0, clarity: 0 };
-
-  // Threshold = 0.8 * global maximum
   const globalMax = Math.max(...keyMaxima.map(k => k.val));
-  const thresh = 0.8 * globalMax;
-  const chosen = keyMaxima.find(k => k.val >= thresh);
+  const chosen = keyMaxima.find(k => k.val >= 0.8 * globalMax);
   if (!chosen) return { freq: 0, clarity: 0 };
-
-  // Parabolic interpolation for sub-sample accuracy
   const tau = chosen.pos;
   let refined = tau;
   if (tau > 0 && tau < n - 1) {
-    const s0 = nsdf[tau - 1], s1 = nsdf[tau], s2 = nsdf[tau + 1];
-    const denom = 2 * s1 - s0 - s2;
-    if (denom !== 0) refined = tau + (s2 - s0) / (2 * denom);
+    const s0 = nsdf[tau-1], s1 = nsdf[tau], s2 = nsdf[tau+1];
+    const d = 2*s1 - s0 - s2;
+    if (d !== 0) refined = tau + (s2 - s0) / (2 * d);
   }
-
-  return {
-    freq:    refined > 0 ? sampleRate / refined : 0,
-    clarity: chosen.val
-  };
+  return { freq: refined > 0 ? sampleRate / refined : 0, clarity: chosen.val };
 }
 
-// ---- Helpers ----
-function freqToNoteName(freq) {
-  if (freq <= 0) return { note: '--', octave: '-', cents: 0 };
-  const A4 = 440;
-  const semitones = 12 * Math.log2(freq / A4);
-  const rounded   = Math.round(semitones);
-  const cents     = Math.round((semitones - rounded) * 100);
-  const noteNames = ['A','A#','B','C','C#','D','D#','E','F','F#','G','G#'];
-  const noteIdx   = ((rounded % 12) + 12) % 12;
-  const octave    = Math.floor((rounded + 9) / 12) + 4;
-  return { note: noteNames[noteIdx], octave, cents };
+// ============================================================
+// MUSIC THEORY HELPERS
+// ============================================================
+
+// Standard tuning open string frequencies (Hz)
+const STRINGS = [
+  { num: 6, name: 'E', freq: 82.41,  label: 'Mi' },
+  { num: 5, name: 'A', freq: 110.00, label: 'La' },
+  { num: 4, name: 'D', freq: 146.83, label: 'Re' },
+  { num: 3, name: 'G', freq: 196.00, label: 'Sol' },
+  { num: 2, name: 'B', freq: 246.94, label: 'Si' },
+  { num: 1, name: 'e', freq: 329.63, label: 'Mi' },
+];
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+function freqAtFret(stringFreq, fret) {
+  return stringFreq * Math.pow(2, fret / 12);
 }
 
-function freqToCents(freq, targetFreq) {
-  if (freq <= 0 || targetFreq <= 0) return null;
-  return 1200 * Math.log2(freq / targetFreq);
+function freqToMidi(freq) {
+  return 69 + 12 * Math.log2(freq / 440);
+}
+
+function midiToNoteName(midi) {
+  const rounded = Math.round(midi);
+  const note = NOTE_NAMES[((rounded % 12) + 12) % 12];
+  const octave = Math.floor(rounded / 12) - 1;
+  return `${note}${octave}`;
+}
+
+function freqToCents(detectedFreq, targetFreq) {
+  if (detectedFreq <= 0 || targetFreq <= 0) return null;
+  return 1200 * Math.log2(detectedFreq / targetFreq);
 }
 
 function centsColor(cents) {
-  if (cents === null) return 'muted';
+  if (cents === null) return 'silent';
   const abs = Math.abs(cents);
-  if (abs <= CENTS_GREEN)  return 'green';
-  if (abs <= 35)           return 'yellow';
+  if (abs <= CENTS_GREEN) return 'green';
+  if (abs <= CENTS_CLOSE) return 'yellow';
   return 'red';
 }
 
-// ---- Audio pipeline ----
-let audioCtx, analyser, source, rafId;
-let smoothBuf = [];
+// ============================================================
+// APP STATE
+// ============================================================
+let selectedString = 3;  // index into STRINGS (0=6th, 5=1st), default 3rd (G)
+let selectedFret   = 7;
+let selectedSemi   = 2;  // semitones of bend (1=½ tone, 2=1 tone, 3=1½ tones)
+
+// Derived
+let originFreq  = 0;
+let targetFreq  = 0;
+let originName  = '';
+let targetName  = '';
+
+function updateTargetState() {
+  const str = STRINGS[selectedString];
+  originFreq = freqAtFret(str.freq, selectedFret);
+  targetFreq = freqAtFret(str.freq, selectedFret + selectedSemi);
+  originName = midiToNoteName(freqToMidi(originFreq));
+  targetName = midiToNoteName(freqToMidi(targetFreq));
+}
+
+// Audio
+let audioCtx = null, analyser = null, rafId = null;
 let wakeLock = null;
+let micActive = false;
+let smoothBuf = [];
+let lastValidFreq = 0, lastValidClarity = 0, lastValidTime = 0;
 
-// Re-acquire WakeLock if user returns to tab while mic is active
-document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && audioCtx) {
-    await acquireWakeLock();
+// Timer state
+let inGreenZone   = false;
+let greenStart    = 0;   // performance.now() when entered green zone
+let currentHoldMs = 0;
+
+// Session stats
+let statAttempts  = 0;
+let statHits      = 0;
+let centsSamples  = [];  // array of |cents| while in green zone
+let bendDetected  = false; // true once pitch goes above origin (bend started)
+
+// Graph
+const graphData = [];
+const GRAPH_MAX = 4 * 25; // 4s at ~25fps
+
+// ============================================================
+// UI BUILD
+// ============================================================
+function buildStringGrid() {
+  const grid = document.getElementById('stringGrid');
+  grid.innerHTML = '';
+  STRINGS.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'str-btn' + (i === selectedString ? ' active' : '');
+    btn.innerHTML = `
+      <span class="str-num">${s.num}ª</span>
+      <span class="str-name">${s.name}</span>
+      <span class="str-hz">${s.label}</span>
+    `;
+    btn.addEventListener('click', () => {
+      selectedString = i;
+      buildStringGrid();
+      updateConfig();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function updateConfig() {
+  updateTargetState();
+
+  // Fret display
+  document.getElementById('fretDisplay').textContent = selectedFret;
+  document.getElementById('fretNote').textContent = originName;
+
+  // Target display
+  document.getElementById('originNote').textContent = originName;
+  document.getElementById('destNote').textContent   = targetName;
+
+  const str = STRINGS[selectedString];
+  const bendLabels = { 1: '½ tono', 2: '1 tono', 3: '1½ tonos' };
+  document.getElementById('targetSub').textContent =
+    `Toca traste ${selectedFret} cuerda ${str.num}ª (${str.name}) · bend ${bendLabels[selectedSemi]} → ${targetName}`;
+
+  // Reset timer on config change
+  resetTimer();
+}
+
+function updateStats() {
+  document.getElementById('statAttempts').textContent = statAttempts;
+  document.getElementById('statHits').textContent     = statHits;
+  const pct = statAttempts > 0 ? Math.round(statHits / statAttempts * 100) : '--';
+  document.getElementById('statPct').textContent      = pct !== '--' ? pct + '%' : '--%';
+  const avg = centsSamples.length > 0
+    ? (centsSamples.reduce((a,b)=>a+b,0) / centsSamples.length).toFixed(1)
+    : '--';
+  document.getElementById('statAvgCents').textContent = avg;
+}
+
+// ============================================================
+// TIMER LOGIC
+// ============================================================
+function resetTimer() {
+  inGreenZone   = false;
+  greenStart    = 0;
+  currentHoldMs = 0;
+  bendDetected  = false;
+  document.getElementById('timerFill').style.width = '0%';
+  document.getElementById('timerCount').textContent = '0 / 0';
+}
+
+function triggerSuccess() {
+  statHits++;
+  updateStats();
+  // Flash the screen green
+  const flash = document.getElementById('flash');
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 300);
+  // Reset for next bend
+  setTimeout(resetTimer, 600);
+}
+
+function updateTimer(isGreen, cents) {
+  const now = performance.now();
+
+  if (isGreen) {
+    // Count this as a bend attempt the first time we hit green after a non-green period
+    if (!inGreenZone) {
+      inGreenZone = true;
+      greenStart  = now;
+      if (!bendDetected) {
+        statAttempts++;
+        bendDetected = true;
+        updateStats();
+      }
+    }
+    currentHoldMs = now - greenStart;
+    if (cents !== null) centsSamples.push(Math.abs(cents));
+    if (currentHoldMs >= GOAL_MS) {
+      triggerSuccess();
+      return;
+    }
+  } else {
+    if (inGreenZone) {
+      // Left the zone — decay the timer quickly
+      currentHoldMs = Math.max(0, currentHoldMs - (now - greenStart) * 2);
+    }
+    inGreenZone = false;
   }
-});
-let lastOnsetTime = 0;
-let lastDetectedFreq = 0;
-let graphData = [];   // Array of { cents, clarity } for the scrolling graph
 
-const GRAPH_SECONDS = 4;
-let graphWidth = 0;
+  const pct = Math.min(100, (currentHoldMs / GOAL_MS) * 100);
+  document.getElementById('timerFill').style.width = pct + '%';
+  document.getElementById('timerCount').textContent =
+    (currentHoldMs / 1000).toFixed(1) + ' / 2.0 s';
+}
 
-const canvas  = document.getElementById('graph');
-const ctx2d   = canvas.getContext('2d');
+// ============================================================
+// CANVAS GRAPH
+// ============================================================
+const canvas = document.getElementById('graph');
+const ctx2d  = canvas.getContext('2d');
+let gWidth   = 0;
 
 function resizeCanvas() {
-  graphWidth = canvas.offsetWidth;
-  canvas.width  = graphWidth * devicePixelRatio;
-  canvas.height = 120 * devicePixelRatio;
+  gWidth = canvas.offsetWidth;
+  canvas.width  = gWidth * devicePixelRatio;
+  canvas.height = 90 * devicePixelRatio;
   ctx2d.scale(devicePixelRatio, devicePixelRatio);
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 function drawGraph() {
-  const w = graphWidth, h = 120;
+  const w = gWidth, h = 90;
   ctx2d.clearRect(0, 0, w, h);
+  const ppc = (h / 2) / 50; // pixels per cent
 
-  // Background grid
+  // Zone background
+  ctx2d.fillStyle = 'rgba(76,175,80,0.07)';
+  ctx2d.fillRect(0, h/2 - CENTS_GREEN*ppc, w, CENTS_GREEN*ppc*2);
+
+  // Centre line
   ctx2d.strokeStyle = '#2a2724';
-  ctx2d.lineWidth = 0.5;
-  // Centre line (0 cents)
+  ctx2d.lineWidth = 1;
   ctx2d.beginPath();
-  ctx2d.moveTo(0, h / 2); ctx2d.lineTo(w, h / 2);
+  ctx2d.moveTo(0, h/2); ctx2d.lineTo(w, h/2);
   ctx2d.stroke();
-  // ±15 cents zone
-  const pxPerCent = (h / 2) / 50;
-  const zoneY1 = h / 2 - CENTS_GREEN * pxPerCent;
-  const zoneY2 = h / 2 + CENTS_GREEN * pxPerCent;
-  ctx2d.fillStyle = 'rgba(76,175,80,0.08)';
-  ctx2d.fillRect(0, zoneY1, w, zoneY2 - zoneY1);
-
-  // Labels
-  ctx2d.font = `${9 * devicePixelRatio / devicePixelRatio}px monospace`;
-  ctx2d.fillStyle = '#3a3630';
-  ctx2d.fillText('+50¢', 4, 10);
-  ctx2d.fillText('  0¢', 4, h / 2 + 4);
-  ctx2d.fillText('-50¢', 4, h - 4);
 
   if (graphData.length < 2) return;
 
-  // Curve
-  const maxPoints = graphData.length;
   ctx2d.beginPath();
-  for (let i = 0; i < maxPoints; i++) {
-    const x = (i / (maxPoints - 1)) * w;
-    const c = graphData[i].cents;
-    if (c === null) continue;
-    const clamped = Math.max(-50, Math.min(50, c));
-    const y = h / 2 - clamped * pxPerCent;
-    if (i === 0 || graphData[i - 1].cents === null) ctx2d.moveTo(x, y);
+  let started = false;
+  graphData.forEach((d, i) => {
+    if (d === null) { started = false; return; }
+    const x = (i / (GRAPH_MAX - 1)) * w;
+    const y = h/2 - Math.max(-50, Math.min(50, d)) * ppc;
+    if (!started) { ctx2d.moveTo(x, y); started = true; }
     else ctx2d.lineTo(x, y);
-  }
+  });
   ctx2d.strokeStyle = '#C9762C';
   ctx2d.lineWidth = 2;
   ctx2d.stroke();
 
-  // Color the last segment by zone
+  // Colour the last point
   if (graphData.length > 1) {
     const last = graphData[graphData.length - 1];
-    if (last.cents !== null) {
-      const col = last.cents !== null && Math.abs(last.cents) <= CENTS_GREEN
-        ? '#4CAF50' : Math.abs(last.cents) <= 35 ? '#F0C040' : '#E24B4A';
+    const prev = graphData[graphData.length - 2];
+    if (last !== null && prev !== null) {
+      const col = Math.abs(last) <= CENTS_GREEN ? '#4CAF50'
+                : Math.abs(last) <= CENTS_CLOSE ? '#F0C040' : '#E24B4A';
+      const x0 = ((graphData.length - 2) / (GRAPH_MAX - 1)) * w;
+      const x1 = ((graphData.length - 1) / (GRAPH_MAX - 1)) * w;
       ctx2d.beginPath();
-      const x0 = ((graphData.length - 2) / (maxPoints - 1)) * w;
-      const x1 = w;
-      const c0 = graphData[graphData.length - 2].cents || 0;
-      const c1 = last.cents;
-      ctx2d.moveTo(x0, h / 2 - Math.max(-50, Math.min(50, c0)) * pxPerCent);
-      ctx2d.lineTo(x1, h / 2 - Math.max(-50, Math.min(50, c1)) * pxPerCent);
+      ctx2d.moveTo(x0, h/2 - Math.max(-50,Math.min(50,prev))*ppc);
+      ctx2d.lineTo(x1, h/2 - Math.max(-50,Math.min(50,last))*ppc);
       ctx2d.strokeStyle = col;
       ctx2d.lineWidth = 2.5;
       ctx2d.stroke();
@@ -479,87 +981,100 @@ function drawGraph() {
   }
 }
 
+// ============================================================
+// MAIN UI UPDATE
+// ============================================================
 function updateUI(freq, clarity, rawFreq, rawClarity) {
-  rawFreq    = rawFreq    !== undefined ? rawFreq    : freq;
-  rawClarity = rawClarity !== undefined ? rawClarity : clarity;
-  const { note, octave, cents: noteCents } = freqToNoteName(freq);
-  const cents = freqToCents(freq, TARGET_NOTE.freq);
-  const color = centsColor(cents);
+  const cents = freqToCents(freq, targetFreq);
+  const color = clarity >= CLARITY_THRESH ? centsColor(cents) : 'silent';
+  const hasSignal = clarity >= CLARITY_THRESH && freq > 0;
 
-  // Note name
-  const noteEl = document.getElementById('noteName');
-  noteEl.textContent = clarity < CLARITY_THRESH ? '--' : `${note}${octave}`;
-  noteEl.className = `note-name ${clarity >= CLARITY_THRESH ? color : ''}`;
+  // Pitch readout
+  const noteName = hasSignal ? midiToNoteName(freqToMidi(freq)) : '--';
+  const pitchEl  = document.getElementById('pitchBig');
+  pitchEl.textContent = noteName;
+  pitchEl.className   = 'pitch-big ' + (hasSignal ? color : '');
 
-  // Freq details
-  document.getElementById('freqHz').textContent  = clarity >= CLARITY_THRESH ? freq.toFixed(1) : '---';
-  document.getElementById('clarity').textContent = (clarity * 100).toFixed(0) + '%';
-  document.getElementById('octave').textContent  = clarity >= CLARITY_THRESH ? octave : '-';
+  document.getElementById('pitchHz').textContent = hasSignal
+    ? `${freq.toFixed(1)} Hz · claridad: ${(rawClarity*100).toFixed(0)}%`
+    : '--- Hz · claridad: ---%';
 
-  // Cents meter
-  const centsVal = clarity >= CLARITY_THRESH && cents !== null ? cents : null;
-  document.getElementById('centsVal').textContent = centsVal !== null ? (centsVal > 0 ? '+' : '') + centsVal.toFixed(1) : '--';
+  // Cents bar
+  const centsEl   = document.getElementById('centsLabel');
+  const needleEl  = document.getElementById('barNeedle');
+  const zoneLbl   = document.getElementById('zoneLabel');
 
-  const barFill = document.getElementById('barFill');
-  if (centsVal !== null) {
-    const pct = 50 + Math.max(-50, Math.min(50, centsVal));
-    barFill.style.left = pct + '%';
-    barFill.className = `bar-fill ${color}`;
+  if (hasSignal && cents !== null) {
+    const centsRound = cents.toFixed(1);
+    centsEl.textContent  = (cents > 0 ? '+' : '') + centsRound + ' ¢';
+    centsEl.className    = 'cents-val-label ' + color;
+    const pct = 50 + Math.max(-50, Math.min(50, cents));
+    needleEl.style.left  = pct + '%';
+    needleEl.className   = 'bar-needle ' + color;
+
+    const zoneText = { green: '✓ AFINADO', yellow: '~ CERCA', red: '✗ DESAFINADO' };
+    zoneLbl.textContent = zoneText[color] || '—';
+    zoneLbl.className   = 'zone-label ' + color;
+
+    // Timer
+    updateTimer(color === 'green', cents);
+
+    // Graph
+    graphData.push(cents);
   } else {
-    barFill.style.left = '50%';
-    barFill.className = 'bar-fill';
+    centsEl.textContent = '-- ¢';
+    centsEl.className   = 'cents-val-label';
+    needleEl.style.left = '50%';
+    needleEl.className  = 'bar-needle';
+    zoneLbl.textContent = hasSignal ? '—' : '— sin señal —';
+    zoneLbl.className   = 'zone-label silent';
+    graphData.push(null);
+    if (!hasSignal && inGreenZone) {
+      inGreenZone = false;
+    }
   }
 
-  // Graph data — keep GRAPH_SECONDS worth at ~20fps = ~80 points
-  const MAX_POINTS = GRAPH_SECONDS * 20;
-  graphData.push({ cents: clarity >= CLARITY_THRESH ? centsVal : null, clarity });
-  if (graphData.length > MAX_POINTS) graphData.shift();
+  if (graphData.length > GRAPH_MAX) graphData.shift();
   drawGraph();
 
-  // Debug — includes WakeLock status so it's never hidden
-  const wlStatus = !('wakeLock' in navigator)
-    ? '<span class="bad">no soportado</span>'
-    : (wakeLock && !wakeLock.released)
-      ? '<span class="ok">● activa</span>'
-      : '<span class="bad">○ inactiva (pantalla puede apagarse)</span>';
+  // WakeLock status
+  const wlEl = document.getElementById('wlStatus');
+  if (!('wakeLock' in navigator)) {
+    wlEl.innerHTML = '<span class="wl-bad">Pantalla: sin soporte</span>';
+  } else if (wakeLock && !wakeLock.released) {
+    wlEl.innerHTML = '<span class="wl-ok">● Pantalla activa</span>';
+  } else {
+    wlEl.innerHTML = '<span class="wl-bad">○ Pantalla puede apagarse</span>';
+  }
 
-  document.getElementById('debugPanel').innerHTML = `
-    <strong>Debug</strong><br>
-    Pantalla activa (WakeLock): ${wlStatus}<br>
-    Sample rate: <span class="ok">${audioCtx.sampleRate} Hz</span><br>
-    Buffer size: ${BUFFER_SIZE} (~${(BUFFER_SIZE / audioCtx.sampleRate * 1000).toFixed(0)} ms)<br>
-    Freq detectada: ${rawFreq > 0 ? rawFreq.toFixed(2) + ' Hz' : '<span class="bad">sin señal</span>'}<br>
-    Claridad: <span class="${rawClarity >= CLARITY_THRESH ? 'ok' : 'bad'}">${(rawClarity * 100).toFixed(1)}% ${rawClarity >= CLARITY_THRESH ? '✓' : '✗ (bajo umbral)'}</span><br>
-    Nota: ${note}${octave} | Desviación: ${noteCents > 0 ? '+' : ''}${noteCents}¢<br>
-    Cents vs ${TARGET_NOTE.name}: ${centsVal !== null ? (centsVal > 0 ? '+' : '') + centsVal.toFixed(1) + '¢' : 'n/d'}<br>
-    Zona: <span class="${color}">${color === 'green' ? '✓ AFINADO' : color === 'yellow' ? '~ CERCA' : '✗ DESAFINADO'}</span>
-  `;
+  document.getElementById('statusLeft').textContent = audioCtx
+    ? `${audioCtx.sampleRate} Hz · ${rawFreq > 0 ? rawFreq.toFixed(0)+' Hz raw' : 'sin señal'}`
+    : '—';
 }
 
+// ============================================================
+// AUDIO PIPELINE
+// ============================================================
 function processAudio() {
-  // Guard: if mic was stopped, don't schedule next frame
   if (!audioCtx) return;
 
   const buffer = new Float32Array(BUFFER_SIZE);
   analyser.getFloatTimeDomainData(buffer);
 
-  // RMS — detectar si hay señal (silencio → no procesar)
   let rms = 0;
   for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
   rms = Math.sqrt(rms / buffer.length);
 
   if (rms < 0.01) {
     smoothBuf = [];
-    updateUI(0, 0);
+    updateUI(0, 0, 0, 0);
     rafId = requestAnimationFrame(processAudio);
     return;
   }
 
   const { freq, clarity } = findPitch(buffer, audioCtx.sampleRate);
-
   const now = performance.now();
-  let displayFreq = freq;
-  let displayClarity = clarity;
+  let displayFreq = freq, displayClarity = clarity;
 
   if (clarity >= CLARITY_THRESH && freq > 50 && freq < 2000) {
     lastValidFreq    = freq;
@@ -569,80 +1084,42 @@ function processAudio() {
     if (smoothBuf.length > SMOOTH_FRAMES) smoothBuf.shift();
   } else if (now - lastValidTime < HOLD_MS && lastValidFreq > 0) {
     displayFreq    = lastValidFreq;
-    displayClarity = lastValidClarity * 0.7;
+    displayClarity = lastValidClarity * 0.75;
     smoothBuf = [];
   } else {
     smoothBuf = [];
   }
 
   const smoothFreq = smoothBuf.length > 0
-    ? smoothBuf.reduce((a, b) => a + b, 0) / smoothBuf.length
+    ? smoothBuf.reduce((a,b) => a+b, 0) / smoothBuf.length
     : displayFreq;
 
   updateUI(smoothFreq, displayClarity, freq, clarity);
   rafId = requestAnimationFrame(processAudio);
 }
 
-// ---- Clarity hold ----
-// When clarity drops suddenly (e.g. mid-bend transient), hold the last
-// valid pitch for up to HOLD_MS before blanking the display.
-// This prevents the UI flickering off during the bend attack.
-const HOLD_MS = 120;
-let lastValidFreq = 0;
-let lastValidClarity = 0;
-let lastValidTime = 0;
-
-function updateWakeLockBadge() {
-  const badge = document.getElementById('wakeLockBadge');
-  if (!('wakeLock' in navigator)) {
-    badge.textContent = 'Pantalla activa: no soportado en este navegador';
-    badge.className = 'wakelock-badge bad';
-  } else if (wakeLock && !wakeLock.released) {
-    badge.textContent = '● Pantalla activa';
-    badge.className = 'wakelock-badge ok';
-  } else {
-    badge.textContent = '○ Pantalla puede apagarse';
-    badge.className = 'wakelock-badge bad';
-  }
-}
-
+// ============================================================
+// WAKELOCK
+// ============================================================
 async function acquireWakeLock() {
   if (!('wakeLock' in navigator)) return;
   try {
     wakeLock = await navigator.wakeLock.request('screen');
-    wakeLock.addEventListener('release', updateWakeLockBadge);
-    updateWakeLockBadge();
-  } catch(e) {
-    updateWakeLockBadge();
-  }
+    wakeLock.addEventListener('release', () => {});
+  } catch(e) {}
 }
 
-function releaseWakeLock() {
-  if (wakeLock) {
-    wakeLock.release().catch(() => {});
-    wakeLock = null;
-  }
-  updateWakeLockBadge();
-}
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && audioCtx) await acquireWakeLock();
+});
 
-function resetUI() {
-  document.getElementById('noteName').textContent = '--';
-  document.getElementById('noteName').className = 'note-name';
-  document.getElementById('freqHz').textContent  = '---';
-  document.getElementById('clarity').textContent = '---';
-  document.getElementById('octave').textContent  = '-';
-  document.getElementById('centsVal').textContent = '--';
-  document.getElementById('barFill').style.left = '50%';
-  document.getElementById('barFill').className = 'bar-fill';
-  graphData = [];
-  drawGraph();
-}
-
+// ============================================================
+// MIC START / STOP
+// ============================================================
 async function startMic() {
-  const btn = document.getElementById('btnStart');
-  const dot = document.getElementById('statusDot');
+  const btn = document.getElementById('btnMic');
   btn.disabled = true;
-  btn.innerHTML = '<span class="status-dot" id="statusDot"></span> Conectando...';
+  btn.innerHTML = '<span class="mic-dot"></span> Conectando...';
 
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -656,79 +1133,97 @@ async function startMic() {
         sampleRate: audioCtx.sampleRate
       }
     });
-
-    // Store stream reference so we can stop tracks later
     audioCtx._stream = stream;
 
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = BUFFER_SIZE * 2;
     analyser.smoothingTimeConstant = 0;
-
     source = audioCtx.createMediaStreamSource(stream);
     source.connect(analyser);
 
     await acquireWakeLock();
 
     btn.disabled = false;
-    btn.className = 'btn-start listening';
-    btn.innerHTML = '<span class="status-dot active"></span> Detener micrófono';
+    btn.className = 'btn-mic active';
+    btn.innerHTML = '<span class="mic-dot"></span> Detener micrófono';
 
-    lastValidFreq = 0;
-    lastValidClarity = 0;
-    lastValidTime = 0;
+    smoothBuf = [];
+    lastValidFreq = lastValidClarity = lastValidTime = 0;
+    resetTimer();
     processAudio();
     return true;
 
-  } catch (err) {
+  } catch(err) {
+    audioCtx = null;
     btn.disabled = false;
-    btn.innerHTML = '<span class="status-dot"></span> Reintentar';
-    document.getElementById('debugPanel').innerHTML =
-      `<strong>Error</strong><br><span class="bad">${err.name}: ${err.message}</span><br>
-       Asegúrate de que el navegador tiene permiso de micrófono.`;
-    updateWakeLockBadge();
+    btn.className = 'btn-mic';
+    btn.innerHTML = '<span class="mic-dot"></span> Reintentar';
+    document.getElementById('statusLeft').textContent =
+      err.name + ': ' + err.message;
     return false;
   }
 }
 
 function stopMic() {
-  const btn = document.getElementById('btnStart');
-
-  // Stop the animation loop
   if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-
-  // Stop all mic tracks — this releases the mic indicator in the browser
-  if (audioCtx && audioCtx._stream) {
-    audioCtx._stream.getTracks().forEach(t => t.stop());
-  }
-
-  // Close AudioContext
+  if (audioCtx?._stream) audioCtx._stream.getTracks().forEach(t => t.stop());
   if (audioCtx) { audioCtx.close(); audioCtx = null; }
-
-  releaseWakeLock();
+  if (wakeLock) { wakeLock.release().catch(()=>{}); wakeLock = null; }
   smoothBuf = [];
-  resetUI();
+  resetTimer();
 
-  btn.className = 'btn-start';
-  btn.innerHTML = '<span class="status-dot"></span> Iniciar micrófono';
-  document.getElementById('debugPanel').innerHTML =
-    '<strong>Estado del sistema</strong><br>Micrófono detenido.';
+  const btn = document.getElementById('btnMic');
+  btn.className = 'btn-mic';
+  btn.innerHTML = '<span class="mic-dot"></span> Iniciar micrófono';
+  document.getElementById('statusLeft').textContent = 'Micrófono detenido';
+  document.getElementById('wlStatus').textContent   = '—';
 }
 
-let micActive = false;
-
-async function toggleMic() {
-  if (micActive) {
-    micActive = false;
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+let micActive2 = false;
+document.getElementById('btnMic').addEventListener('click', async () => {
+  if (micActive2) {
+    micActive2 = false;
     stopMic();
   } else {
-    // Don't flip micActive until we know the mic started successfully
-    // startMic() sets the button state itself on success/failure
     const ok = await startMic();
-    if (ok) micActive = true;
+    if (ok) micActive2 = true;
   }
-}
+});
 
-document.getElementById('btnStart').addEventListener('click', toggleMic);
+document.getElementById('fretDown').addEventListener('click', () => {
+  if (selectedFret > 0) { selectedFret--; updateConfig(); }
+});
+document.getElementById('fretUp').addEventListener('click', () => {
+  if (selectedFret < 24) { selectedFret++; updateConfig(); }
+});
+
+document.querySelectorAll('.bend-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedSemi = parseInt(btn.dataset.semi);
+    document.querySelectorAll('.bend-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateConfig();
+  });
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  statAttempts = statHits = 0;
+  centsSamples = [];
+  resetTimer();
+  updateStats();
+});
+
+// ============================================================
+// INIT
+// ============================================================
+buildStringGrid();
+updateConfig();
+updateStats();
+resizeCanvas();
+drawGraph();
 </script>
 </body>
 </html>
