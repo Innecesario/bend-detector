@@ -293,9 +293,9 @@ body {
 .bar-track {
   position: relative;
   flex: 1;
-  height: 14px;
+  height: 22px;
   background: var(--bg);
-  border-radius: 7px;
+  border-radius: 11px;
   border: 1px solid var(--border);
   overflow: hidden;
 }
@@ -317,15 +317,15 @@ body {
 }
 .bar-needle {
   position: absolute;
-  top: 2px; bottom: 2px;
-  width: 4px;
-  border-radius: 2px;
+  top: 3px; bottom: 3px;
+  width: 5px;
+  border-radius: 3px;
   background: var(--copper);
   transform: translateX(-50%);
   left: 50%;
   transition: left 0.06s linear, background 0.1s;
 }
-.bar-needle.green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.bar-needle.green  { background: var(--green); box-shadow: 0 0 8px var(--green); }
 .bar-needle.yellow { background: var(--yellow); }
 .bar-needle.red    { background: var(--red); }
 .cents-ticks {
@@ -372,17 +372,17 @@ body {
   color: var(--green);
 }
 .timer-track {
-  height: 8px;
+  height: 14px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 7px;
   overflow: hidden;
 }
 .timer-fill {
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, var(--green-d), var(--green));
-  border-radius: 4px;
+  border-radius: 7px;
   transition: width 0.08s linear, background 0.2s;
 }
 
@@ -766,7 +766,7 @@ function centsColor(cents) {
 // ============================================================
 let selectedString = 3;  // index into STRINGS (0=6th, 5=1st), default 3rd (G)
 let selectedFret   = 7;
-let selectedSemi   = 2;  // semitones of bend (1=½ tone, 2=1 tone, 3=1½ tones)
+let selectedSemi   = 2;  // semitones of bend
 
 // Derived
 let originFreq  = 0;
@@ -783,7 +783,7 @@ function updateTargetState() {
 }
 
 // Audio
-let audioCtx = null, analyser = null, rafId = null;
+let audioCtx = null, analyser = null, source = null, rafId = null;
 let wakeLock = null;
 let micActive = false;
 let smoothBuf = [];
