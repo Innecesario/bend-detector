@@ -131,28 +131,30 @@ body {
 .fret-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 12px;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
 }
 .fret-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text-3);
   white-space: nowrap;
 }
 .fret-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: 1;
+  gap: 10px;
 }
 .fret-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface2);
-  color: var(--text);
-  font-size: 1.1rem;
+  color: var(--text-2);
+  font-size: 1.3rem;
   font-weight: bold;
   cursor: pointer;
   touch-action: manipulation;
@@ -161,28 +163,35 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: border-color 0.12s, background 0.12s;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
 }
-.fret-btn:active { background: var(--border); }
+.fret-btn:active { background: var(--border); color: var(--text); }
 .fret-display {
-  flex: 1;
-  text-align: center;
-  font-family: var(--font-disp);
-  font-size: clamp(1.4rem, 6vw, 1.8rem);
-  font-weight: bold;
-  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 0;
+  border-radius: 10px;
+  padding: 8px 14px 6px;
+  gap: 2px;
+}
+.fret-number {
+  font-family: var(--font-disp);
+  font-size: clamp(1.8rem, 8vw, 2.2rem);
+  font-weight: bold;
+  color: var(--copper-b);
   line-height: 1;
+  letter-spacing: 0.05em;
 }
 .fret-note {
-  font-size: 0.65rem;
+  font-family: var(--font-disp);
+  font-size: 0.72rem;
   color: var(--text-3);
-  margin-top: 3px;
-  text-align: center;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
+  line-height: 1;
 }
 
 /* ---- Bend interval selector ---- */
@@ -293,9 +302,9 @@ body {
 .bar-track {
   position: relative;
   flex: 1;
-  height: 22px;
+  height: 38px;
   background: var(--bg);
-  border-radius: 11px;
+  border-radius: 19px;
   border: 1px solid var(--border);
   overflow: hidden;
 }
@@ -317,15 +326,15 @@ body {
 }
 .bar-needle {
   position: absolute;
-  top: 3px; bottom: 3px;
-  width: 5px;
-  border-radius: 3px;
+  top: 5px; bottom: 5px;
+  width: 8px;
+  border-radius: 4px;
   background: var(--copper);
   transform: translateX(-50%);
   left: 50%;
   transition: left 0.06s linear, background 0.1s;
 }
-.bar-needle.green  { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.bar-needle.green  { background: var(--green); box-shadow: 0 0 10px var(--green); }
 .bar-needle.yellow { background: var(--yellow); }
 .bar-needle.red    { background: var(--red); }
 .cents-ticks {
@@ -554,9 +563,9 @@ body {
     <span class="fret-label">Traste</span>
     <div class="fret-controls">
       <button class="fret-btn" id="fretDown">−</button>
-      <div>
-        <div class="fret-display" id="fretDisplay">7</div>
-        <div class="fret-note" id="fretNote">B3</div>
+      <div class="fret-display">
+        <span class="fret-number" id="fretDisplay">7</span>
+        <span class="fret-note" id="fretNote">D4</span>
       </div>
       <button class="fret-btn" id="fretUp">+</button>
     </div>
@@ -613,7 +622,7 @@ body {
   <!-- Hold timer -->
   <div class="timer-wrap">
     <div class="timer-label-row">
-      <span class="timer-label">Mantener afinado (2 s)</span>
+      <span class="timer-label">Mantener afinado (1 s)</span>
       <span class="timer-count" id="timerCount">0 / 0</span>
     </div>
     <div class="timer-track">
@@ -623,7 +632,7 @@ body {
 
   <!-- Scrolling graph -->
   <div class="graph-wrap">
-    <canvas id="graph" height="90"></canvas>
+    <canvas id="graph" height="140"></canvas>
     <span class="graph-badge">últimos 4 s</span>
   </div>
 </div>
@@ -673,7 +682,7 @@ const SMOOTH_FRAMES  = 4;
 const CENTS_GREEN    = 15;   // ±cents para "afinado"
 const CENTS_CLOSE    = 35;   // ±cents para "cerca"
 const HOLD_MS        = 120;  // ms a mantener última nota válida
-const GOAL_MS        = 2000; // ms a mantener en zona verde para "conseguido"
+const GOAL_MS        = 1000; // ms a mantener en zona verde para "conseguido"
 
 function findPitch(buffer, sampleRate) {
   const n = buffer.length;
@@ -912,7 +921,7 @@ function updateTimer(isGreen, cents) {
   const pct = Math.min(100, (currentHoldMs / GOAL_MS) * 100);
   document.getElementById('timerFill').style.width = pct + '%';
   document.getElementById('timerCount').textContent =
-    (currentHoldMs / 1000).toFixed(1) + ' / 2.0 s';
+    (currentHoldMs / 1000).toFixed(1) + ' / 1.0 s';
 }
 
 // ============================================================
@@ -925,14 +934,14 @@ let gWidth   = 0;
 function resizeCanvas() {
   gWidth = canvas.offsetWidth;
   canvas.width  = gWidth * devicePixelRatio;
-  canvas.height = 90 * devicePixelRatio;
+  canvas.height = 140 * devicePixelRatio;
   ctx2d.scale(devicePixelRatio, devicePixelRatio);
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 function drawGraph() {
-  const w = gWidth, h = 90;
+  const w = gWidth, h = 140;
   ctx2d.clearRect(0, 0, w, h);
   const ppc = (h / 2) / 50; // pixels per cent
 
@@ -959,7 +968,7 @@ function drawGraph() {
     else ctx2d.lineTo(x, y);
   });
   ctx2d.strokeStyle = '#C9762C';
-  ctx2d.lineWidth = 2;
+  ctx2d.lineWidth = 3;
   ctx2d.stroke();
 
   // Colour the last point
@@ -975,7 +984,7 @@ function drawGraph() {
       ctx2d.moveTo(x0, h/2 - Math.max(-50,Math.min(50,prev))*ppc);
       ctx2d.lineTo(x1, h/2 - Math.max(-50,Math.min(50,last))*ppc);
       ctx2d.strokeStyle = col;
-      ctx2d.lineWidth = 2.5;
+      ctx2d.lineWidth = 4;
       ctx2d.stroke();
     }
   }
