@@ -2,7 +2,7 @@
 
 Un analizador de bends y control de afinación para guitarra, pensado para práctica con instrumento en mano.
 
-**[▶ Probar ahora](https://innecesario.github.io/bend-detector/bend-detector.html)**
+**[▶ Probar ahora](https://innecesario.github.io/bend-detector/index.html)**
 
 > El oído se acostumbra a escuchar nuestros propios bends calados y nos autoengañamos. Esta app actúa como un espejo implacable del control de tensión en los dedos.
 
