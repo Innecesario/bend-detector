@@ -308,12 +308,12 @@ body {
   border: 1px solid var(--border);
   overflow: hidden;
 }
-/* Green zone ±15¢ */
+/* Green zone — width controlled by JS via CSS vars */
 .bar-track::before {
   content: '';
   position: absolute;
-  left: calc(50% - 15%);
-  width: 30%;
+  left: var(--green-zone-left, calc(50% - 15%));
+  width: var(--green-zone-pct, 30%);
   top: 0; bottom: 0;
   background: rgba(76,175,80,0.15);
 }
@@ -537,6 +537,275 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ---- Mode tabs: Libre / Ronda ---- */
+.mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.mode-tab {
+  padding: 10px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-3);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.12s;
+  text-align: center;
+}
+.mode-tab.active {
+  border-color: var(--copper);
+  background: rgba(201,118,44,0.12);
+  color: var(--copper-b);
+}
+
+/* ---- Tolerance selector ---- */
+.tolerance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.tol-btn {
+  padding: 10px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-2);
+  font-size: clamp(0.78rem, 3vw, 0.88rem);
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  text-align: center;
+  transition: all 0.12s;
+  line-height: 1.3;
+}
+.tol-btn .tol-sub {
+  display: block;
+  font-size: 0.58rem;
+  color: var(--text-3);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.tol-btn.active {
+  border-color: var(--copper);
+  background: rgba(201,118,44,0.12);
+  color: var(--copper-b);
+}
+.tol-btn.active .tol-sub { color: var(--copper-d); }
+
+/* ---- Round mode config ---- */
+.round-config {
+  display: none;
+}
+.round-config.visible { display: block; }
+.round-fret-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.round-fret-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.round-fret-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.round-fret-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.round-fret-val {
+  font-family: var(--font-disp);
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--copper-b);
+  min-width: 32px;
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.round-sep {
+  color: var(--text-3);
+  font-size: 1rem;
+  padding: 0 4px;
+}
+.round-count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  gap: 10px;
+}
+.round-count-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.round-count-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.round-count-val {
+  font-family: var(--font-disp);
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--text);
+  min-width: 28px;
+  text-align: center;
+}
+.btn-start-round {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  background: linear-gradient(180deg, var(--copper-b), var(--copper));
+  color: #141210;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 0 var(--copper-d);
+}
+.btn-start-round:active { transform: translateY(1px); box-shadow: none; }
+
+/* ---- Round in-progress panel ---- */
+.round-panel {
+  display: none;
+  text-align: center;
+}
+.round-panel.visible { display: block; }
+.round-counter {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+.round-progress-track {
+  height: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.round-progress-fill {
+  height: 100%;
+  background: var(--copper);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.round-current-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.round-current-bend {
+  font-family: var(--font-disp);
+  font-size: clamp(1.1rem, 5vw, 1.4rem);
+  font-weight: bold;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.round-current-bend span { color: var(--copper-b); }
+.btn-stop-round {
+  padding: 8px 20px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-3);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- Round summary overlay ---- */
+.round-summary {
+  display: none;
+  text-align: center;
+  padding: 4px 0;
+}
+.round-summary.visible { display: block; }
+.round-summary-title {
+  font-family: var(--font-disp);
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--green);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.round-summary-stat {
+  font-size: 0.8rem;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+.round-summary-stat strong {
+  color: var(--copper-b);
+  font-family: var(--font-disp);
+}
+.btn-new-round {
+  margin-top: 12px;
+  padding: 10px 24px;
+  background: linear-gradient(180deg, var(--copper-b), var(--copper));
+  color: #141210;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 2px 0 var(--copper-d);
+}
+
+/* ---- Tendency indicator ---- */
+.tendency {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 0.7rem;
+  min-height: 1.2em;
+  letter-spacing: 0.05em;
+}
+.tendency.short { color: var(--red); }
+.tendency.long  { color: var(--red); }
+.tendency.ok    { color: var(--green); }
+.tendency.none  { color: var(--text-3); }
 </style>
 </head>
 <body>
@@ -549,44 +818,106 @@ body {
   <div class="app-sub">Control de afinación · Guitarra</div>
 </div>
 
-<!-- Setup card: string + fret + bend interval -->
+<!-- Setup card -->
 <div class="card">
-  <div class="card-label">Configuración</div>
-
-  <!-- String selector -->
-  <div class="string-grid" id="stringGrid">
-    <!-- filled by JS -->
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tabFree">Libre</button>
+    <button class="mode-tab" id="tabRound">Ronda</button>
   </div>
 
-  <!-- Fret selector -->
-  <div class="fret-row">
-    <span class="fret-label">Traste</span>
-    <div class="fret-controls">
-      <button class="fret-btn" id="fretDown">−</button>
-      <div class="fret-display">
-        <span class="fret-number" id="fretDisplay">7</span>
-        <span class="fret-note" id="fretNote">D4</span>
+  <!-- FREE MODE -->
+  <div id="freeMode">
+    <div class="card-label">Cuerda</div>
+    <div class="string-grid" id="stringGrid"></div>
+
+    <div class="fret-row">
+      <span class="fret-label">Traste</span>
+      <div class="fret-controls">
+        <button class="fret-btn" id="fretDown">−</button>
+        <div class="fret-display">
+          <span class="fret-number" id="fretDisplay">7</span>
+          <span class="fret-note" id="fretNote">D4</span>
+        </div>
+        <button class="fret-btn" id="fretUp">+</button>
       </div>
-      <button class="fret-btn" id="fretUp">+</button>
+    </div>
+
+    <div style="margin-top:14px">
+      <div class="card-label">Intervalo del bend</div>
+      <div class="bend-grid">
+        <button class="bend-btn" data-semi="1">½ tono<span class="bend-sub">1 traste</span></button>
+        <button class="bend-btn active" data-semi="2">1 tono<span class="bend-sub">2 trastes</span></button>
+        <button class="bend-btn" data-semi="3">1½ tonos<span class="bend-sub">3 trastes</span></button>
+      </div>
     </div>
   </div>
 
-  <!-- Bend interval -->
+  <!-- ROUND MODE -->
+  <div id="roundMode" style="display:none">
+    <!-- Round config -->
+    <div id="roundConfig" class="round-config visible">
+      <div class="card-label">Rango de trastes</div>
+      <div class="round-fret-row">
+        <div class="round-fret-group">
+          <span class="round-fret-label">Mínimo</span>
+          <div class="round-fret-ctrl">
+            <button class="fret-btn" id="roundFretMinDown">−</button>
+            <div class="round-fret-val" id="roundFretMinVal">5</div>
+            <button class="fret-btn" id="roundFretMinUp">+</button>
+          </div>
+        </div>
+        <span class="round-sep">—</span>
+        <div class="round-fret-group">
+          <span class="round-fret-label">Máximo</span>
+          <div class="round-fret-ctrl">
+            <button class="fret-btn" id="roundFretMaxDown">−</button>
+            <div class="round-fret-val" id="roundFretMaxVal">12</div>
+            <button class="fret-btn" id="roundFretMaxUp">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="round-count-row">
+        <span class="round-count-label">Bends por ronda</span>
+        <div class="round-count-ctrl">
+          <button class="fret-btn" id="roundCountDown">−</button>
+          <span class="round-count-val" id="roundCountVal">8</span>
+          <button class="fret-btn" id="roundCountUp">+</button>
+        </div>
+      </div>
+      <button class="btn-start-round" id="btnStartRound">Iniciar ronda</button>
+    </div>
+
+    <!-- Round in progress -->
+    <div id="roundInProgress" class="round-panel">
+      <div class="round-counter" id="roundCounter">Bend 1 de 8</div>
+      <div class="round-progress-track">
+        <div class="round-progress-fill" id="roundProgressFill"></div>
+      </div>
+      <div class="round-current-label">Toca y dobla 1 tono</div>
+      <div class="round-current-bend" id="roundCurrentBend">
+        Cuerda <span id="roundStringName">G</span> · traste <span id="roundFretNum">7</span>
+      </div>
+      <button class="btn-stop-round" id="btnStopRound">Detener ronda</button>
+    </div>
+
+    <!-- Round summary -->
+    <div id="roundSummary" class="round-summary">
+      <div class="round-summary-title">¡Ronda completada!</div>
+      <div class="round-summary-stat">Bends conseguidos: <strong id="summaryHits">—</strong></div>
+      <div class="round-summary-stat">Tiempo total: <strong id="summaryTime">—</strong></div>
+      <div class="round-summary-stat">Desviación media: <strong id="summaryCents">—</strong></div>
+      <button class="btn-new-round" id="btnNewRound">Nueva ronda</button>
+    </div>
+  </div>
+
+  <!-- Tolerance — always visible -->
   <div style="margin-top:14px">
-    <div class="card-label">Intervalo del bend</div>
-    <div class="bend-grid">
-      <button class="bend-btn" data-semi="1">
-        ½ tono
-        <span class="bend-sub">1 traste</span>
-      </button>
-      <button class="bend-btn active" data-semi="2">
-        1 tono
-        <span class="bend-sub">2 trastes</span>
-      </button>
-      <button class="bend-btn" data-semi="3">
-        1½ tonos
-        <span class="bend-sub">3 trastes</span>
-      </button>
+    <div class="card-label">Tolerancia</div>
+    <div class="tolerance-grid">
+      <button class="tol-btn" data-tol="25">Aprendiz<span class="tol-sub">±25 cents</span></button>
+      <button class="tol-btn active" data-tol="15">Estándar<span class="tol-sub">±15 cents</span></button>
+      <button class="tol-btn" data-tol="8">Exigente<span class="tol-sub">±8 cents</span></button>
     </div>
   </div>
 </div>
@@ -655,6 +986,7 @@ body {
       <div class="stat-lbl">Desviación<br>media (¢)</div>
     </div>
   </div>
+  <div class="tendency none" id="tendency">—</div>
   <button class="btn-reset" id="btnReset">Reiniciar sesión</button>
 </div>
 
@@ -765,17 +1097,72 @@ function freqToCents(detectedFreq, targetFreq) {
 function centsColor(cents) {
   if (cents === null) return 'silent';
   const abs = Math.abs(cents);
-  if (abs <= CENTS_GREEN) return 'green';
-  if (abs <= CENTS_CLOSE) return 'yellow';
+  if (abs <= toleranceCents)       return 'green';
+  if (abs <= toleranceCents + 20)  return 'yellow';
   return 'red';
+}
+
+// ============================================================
+// PERSISTENCE — localStorage
+// ============================================================
+function savePrefs() {
+  try {
+    localStorage.setItem('bd_string',    selectedString);
+    localStorage.setItem('bd_fret',      selectedFret);
+    localStorage.setItem('bd_semi',      selectedSemi);
+    localStorage.setItem('bd_tolerance', toleranceCents);
+    localStorage.setItem('bd_roundMin',  roundFretMin);
+    localStorage.setItem('bd_roundMax',  roundFretMax);
+    localStorage.setItem('bd_roundCount',roundCount);
+  } catch(e) {}
+}
+
+function loadPrefs() {
+  try {
+    const s = localStorage.getItem('bd_string');
+    const f = localStorage.getItem('bd_fret');
+    const m = localStorage.getItem('bd_semi');
+    const t = localStorage.getItem('bd_tolerance');
+    const rn = localStorage.getItem('bd_roundMin');
+    const rx = localStorage.getItem('bd_roundMax');
+    const rc = localStorage.getItem('bd_roundCount');
+    if (s !== null) selectedString  = parseInt(s);
+    if (f !== null) selectedFret    = parseInt(f);
+    if (m !== null) selectedSemi    = parseInt(m);
+    if (t !== null) toleranceCents  = parseInt(t);
+    if (rn !== null) roundFretMin   = parseInt(rn);
+    if (rx !== null) roundFretMax   = parseInt(rx);
+    if (rc !== null) roundCount     = parseInt(rc);
+  } catch(e) {}
 }
 
 // ============================================================
 // APP STATE
 // ============================================================
-let selectedString = 3;  // index into STRINGS (0=6th, 5=1st), default 3rd (G)
+let selectedString = 3;
 let selectedFret   = 7;
-let selectedSemi   = 2;  // semitones of bend
+let selectedSemi   = 2;
+
+// Tolerance (cents) — three levels
+let toleranceCents = 15;
+
+// App mode
+let appMode = 'free'; // 'free' | 'round'
+
+// Round state
+const ROUND_STRINGS = [2, 3, 4]; // indices into STRINGS: G(3), B(2 maps to index 4?
+// STRINGS: 0=E6, 1=A5, 2=D4, 3=G3, 4=B2, 5=e1
+// G=index3, B=index4, e=index5
+const ROUND_STRING_INDICES = [3, 4, 5]; // G, B, e
+let roundFretMin   = 5;
+let roundFretMax   = 12;
+let roundCount     = 8;
+let roundQueue     = [];  // array of {stringIdx, fret}
+let roundCurrent   = 0;
+let roundHits      = 0;
+let roundStartTime = 0;
+let roundCentsSamples = [];
+let roundActive    = false;
 
 // Derived
 let originFreq  = 0;
@@ -822,16 +1209,12 @@ function buildStringGrid() {
   STRINGS.forEach((s, i) => {
     const btn = document.createElement('button');
     btn.className = 'str-btn' + (i === selectedString ? ' active' : '');
+    btn.dataset.idx = i;
     btn.innerHTML = `
       <span class="str-num">${s.num}ª</span>
       <span class="str-name">${s.name}</span>
       <span class="str-hz">${s.label}</span>
     `;
-    btn.addEventListener('click', () => {
-      selectedString = i;
-      buildStringGrid();
-      updateConfig();
-    });
     grid.appendChild(btn);
   });
 }
@@ -860,11 +1243,29 @@ function updateStats() {
   document.getElementById('statAttempts').textContent = statAttempts;
   document.getElementById('statHits').textContent     = statHits;
   const pct = statAttempts > 0 ? Math.round(statHits / statAttempts * 100) : '--';
-  document.getElementById('statPct').textContent      = pct !== '--' ? pct + '%' : '--%';
-  const avg = centsSamples.length > 0
-    ? (centsSamples.reduce((a,b)=>a+b,0) / centsSamples.length).toFixed(1)
-    : '--';
-  document.getElementById('statAvgCents').textContent = avg;
+  document.getElementById('statPct').textContent = pct !== '--' ? pct + '%' : '--%';
+
+  const tendEl = document.getElementById('tendency');
+  if (centsSamples.length < 3) {
+    tendEl.textContent = '—';
+    tendEl.className = 'tendency none';
+    document.getElementById('statAvgCents').textContent = '--';
+    return;
+  }
+  // centsSamples holds signed cents (positive = sharp, negative = flat)
+  const avg = centsSamples.reduce((a,b)=>a+b,0) / centsSamples.length;
+  document.getElementById('statAvgCents').textContent = (avg > 0 ? '+' : '') + avg.toFixed(1);
+
+  if (avg < -10) {
+    tendEl.textContent = '↓ Tiendes a quedarte corto';
+    tendEl.className = 'tendency short';
+  } else if (avg > 10) {
+    tendEl.textContent = '↑ Tiendes a pasarte';
+    tendEl.className = 'tendency long';
+  } else {
+    tendEl.textContent = '✓ Bien centrado';
+    tendEl.className = 'tendency ok';
+  }
 }
 
 // ============================================================
@@ -879,7 +1280,103 @@ function resetTimer() {
   document.getElementById('timerCount').textContent = '0 / 0';
 }
 
+function updateToleranceUI() {
+  // Update the green zone width on the bar track via CSS variable
+  const pct = (toleranceCents / 50) * 100;
+  document.documentElement.style.setProperty('--green-zone-pct', pct + '%');
+  document.documentElement.style.setProperty('--green-zone-left', (50 - pct/2) + '%');
+}
+
+// ============================================================
+// ROUND MODE
+// ============================================================
+function generateRound() {
+  roundQueue = [];
+  for (let i = 0; i < roundCount; i++) {
+    const strIdx  = ROUND_STRING_INDICES[Math.floor(Math.random() * ROUND_STRING_INDICES.length)];
+    const fret    = roundFretMin + Math.floor(Math.random() * (roundFretMax - roundFretMin + 1));
+    roundQueue.push({ stringIdx: strIdx, fret });
+  }
+}
+
+function applyRoundBend(idx) {
+  const bend = roundQueue[idx];
+  selectedString = bend.stringIdx;
+  selectedFret   = bend.fret;
+  selectedSemi   = 2; // always 1 tone in round mode
+  updateTargetState();
+  updateConfig();
+
+  // Update round UI
+  const str = STRINGS[selectedString];
+  document.getElementById('roundCounter').textContent  = `Bend ${idx + 1} de ${roundCount}`;
+  document.getElementById('roundStringName').textContent = str.name;
+  document.getElementById('roundFretNum').textContent    = bend.fret;
+  document.getElementById('roundProgressFill').style.width = (idx / roundCount * 100) + '%';
+}
+
+function startRound() {
+  generateRound();
+  roundCurrent      = 0;
+  roundHits         = 0;
+  roundStartTime    = performance.now();
+  roundCentsSamples = [];
+  roundActive       = true;
+
+  document.getElementById('roundConfig').classList.remove('visible');
+  document.getElementById('roundInProgress').classList.add('visible');
+  document.getElementById('roundSummary').classList.remove('visible');
+
+  applyRoundBend(0);
+  resetTimer();
+}
+
+function stopRound() {
+  roundActive = false;
+  document.getElementById('roundConfig').classList.add('visible');
+  document.getElementById('roundInProgress').classList.remove('visible');
+  document.getElementById('roundSummary').classList.remove('visible');
+  resetTimer();
+}
+
+function roundBendSucceeded() {
+  roundHits++;
+  if (roundCentsSamples.length > 0) {
+    centsSamples.push(...roundCentsSamples);
+    roundCentsSamples = [];
+  }
+  roundCurrent++;
+  if (roundCurrent >= roundCount) {
+    // Round complete
+    roundActive = false;
+    const elapsed = ((performance.now() - roundStartTime) / 1000).toFixed(0);
+    const avg = centsSamples.length > 0
+      ? (centsSamples.reduce((a,b)=>a+b,0) / centsSamples.length).toFixed(1)
+      : '--';
+    document.getElementById('summaryHits').textContent  = `${roundHits} / ${roundCount}`;
+    document.getElementById('summaryTime').textContent  = `${elapsed} s`;
+    document.getElementById('summaryCents').textContent = avg !== '--' ? avg + ' ¢' : '--';
+    document.getElementById('roundInProgress').classList.remove('visible');
+    document.getElementById('roundSummary').classList.add('visible');
+    // Update overall stats
+    statAttempts += roundCount;
+    statHits     += roundHits;
+    updateStats();
+    // Flash
+    const flash = document.getElementById('flash');
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 500);
+  } else {
+    applyRoundBend(roundCurrent);
+    setTimeout(resetTimer, 600);
+  }
+}
+
 function triggerSuccess() {
+  if (roundActive) {
+    roundBendSucceeded();
+    return;
+  }
   statHits++;
   updateStats();
   // Flash the screen green
@@ -894,25 +1391,26 @@ function updateTimer(isGreen, cents) {
   const now = performance.now();
 
   if (isGreen) {
-    // Count this as a bend attempt the first time we hit green after a non-green period
     if (!inGreenZone) {
       inGreenZone = true;
       greenStart  = now;
-      if (!bendDetected) {
+      if (!bendDetected && !roundActive) {
         statAttempts++;
         bendDetected = true;
         updateStats();
       }
     }
     currentHoldMs = now - greenStart;
-    if (cents !== null) centsSamples.push(Math.abs(cents));
+    if (cents !== null) {
+      centsSamples.push(cents);
+      if (roundActive) roundCentsSamples.push(cents);
+    }
     if (currentHoldMs >= GOAL_MS) {
       triggerSuccess();
       return;
     }
   } else {
     if (inGreenZone) {
-      // Left the zone — decay the timer quickly
       currentHoldMs = Math.max(0, currentHoldMs - (now - greenStart) * 2);
     }
     inGreenZone = false;
@@ -1191,33 +1689,98 @@ function stopMic() {
 // ============================================================
 // EVENT LISTENERS
 // ============================================================
-let micActive2 = false;
-document.getElementById('btnMic').addEventListener('click', async () => {
-  if (micActive2) {
-    micActive2 = false;
-    stopMic();
-  } else {
-    const ok = await startMic();
-    if (ok) micActive2 = true;
-  }
+
+// Mode tabs
+document.getElementById('tabFree').addEventListener('click', () => {
+  appMode = 'free';
+  document.getElementById('tabFree').classList.add('active');
+  document.getElementById('tabRound').classList.remove('active');
+  document.getElementById('freeMode').style.display = 'block';
+  document.getElementById('roundMode').style.display = 'none';
+  if (roundActive) stopRound();
+  resetTimer();
 });
 
+document.getElementById('tabRound').addEventListener('click', () => {
+  appMode = 'round';
+  document.getElementById('tabRound').classList.add('active');
+  document.getElementById('tabFree').classList.remove('active');
+  document.getElementById('freeMode').style.display = 'none';
+  document.getElementById('roundMode').style.display = 'block';
+  resetTimer();
+});
+
+// Free mode — string selector
+document.getElementById('stringGrid').addEventListener('click', e => {
+  const btn = e.target.closest('.str-btn');
+  if (!btn) return;
+  selectedString = parseInt(btn.dataset.idx);
+  buildStringGrid();
+  updateConfig();
+  savePrefs();
+});
+
+// Free mode — fret
 document.getElementById('fretDown').addEventListener('click', () => {
-  if (selectedFret > 0) { selectedFret--; updateConfig(); }
+  if (selectedFret > 0) { selectedFret--; updateConfig(); savePrefs(); }
 });
 document.getElementById('fretUp').addEventListener('click', () => {
-  if (selectedFret < 24) { selectedFret++; updateConfig(); }
+  if (selectedFret < 24) { selectedFret++; updateConfig(); savePrefs(); }
 });
 
+// Free mode — bend interval
 document.querySelectorAll('.bend-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     selectedSemi = parseInt(btn.dataset.semi);
     document.querySelectorAll('.bend-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     updateConfig();
+    savePrefs();
   });
 });
 
+// Tolerance
+document.querySelectorAll('.tol-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    toleranceCents = parseInt(btn.dataset.tol);
+    document.querySelectorAll('.tol-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateToleranceUI();
+    savePrefs();
+  });
+});
+
+// Round — fret range
+document.getElementById('roundFretMinDown').addEventListener('click', () => {
+  if (roundFretMin > 0) { roundFretMin--; document.getElementById('roundFretMinVal').textContent = roundFretMin; savePrefs(); }
+});
+document.getElementById('roundFretMinUp').addEventListener('click', () => {
+  if (roundFretMin < roundFretMax - 1) { roundFretMin++; document.getElementById('roundFretMinVal').textContent = roundFretMin; savePrefs(); }
+});
+document.getElementById('roundFretMaxDown').addEventListener('click', () => {
+  if (roundFretMax > roundFretMin + 1) { roundFretMax--; document.getElementById('roundFretMaxVal').textContent = roundFretMax; savePrefs(); }
+});
+document.getElementById('roundFretMaxUp').addEventListener('click', () => {
+  if (roundFretMax < 24) { roundFretMax++; document.getElementById('roundFretMaxVal').textContent = roundFretMax; savePrefs(); }
+});
+
+// Round — count
+document.getElementById('roundCountDown').addEventListener('click', () => {
+  if (roundCount > 3) { roundCount--; document.getElementById('roundCountVal').textContent = roundCount; savePrefs(); }
+});
+document.getElementById('roundCountUp').addEventListener('click', () => {
+  if (roundCount < 20) { roundCount++; document.getElementById('roundCountVal').textContent = roundCount; savePrefs(); }
+});
+
+// Round — start / stop / new
+document.getElementById('btnStartRound').addEventListener('click', startRound);
+document.getElementById('btnStopRound').addEventListener('click', stopRound);
+document.getElementById('btnNewRound').addEventListener('click', () => {
+  document.getElementById('roundSummary').classList.remove('visible');
+  document.getElementById('roundConfig').classList.add('visible');
+});
+
+// Stats reset
 document.getElementById('btnReset').addEventListener('click', () => {
   statAttempts = statHits = 0;
   centsSamples = [];
@@ -1225,14 +1788,38 @@ document.getElementById('btnReset').addEventListener('click', () => {
   updateStats();
 });
 
+// Mic
+let micActive2 = false;
+document.getElementById('btnMic').addEventListener('click', async () => {
+  if (micActive2) { micActive2 = false; stopMic(); }
+  else { const ok = await startMic(); if (ok) micActive2 = true; }
+});
+
 // ============================================================
 // INIT
 // ============================================================
+loadPrefs();
 buildStringGrid();
 updateConfig();
 updateStats();
+updateToleranceUI();
 resizeCanvas();
 drawGraph();
+
+// Sync tolerance buttons with loaded prefs
+document.querySelectorAll('.tol-btn').forEach(btn => {
+  btn.classList.toggle('active', parseInt(btn.dataset.tol) === toleranceCents);
+});
+
+// Sync bend buttons with loaded prefs
+document.querySelectorAll('.bend-btn').forEach(btn => {
+  btn.classList.toggle('active', parseInt(btn.dataset.semi) === selectedSemi);
+});
+
+// Sync round UI with loaded prefs
+document.getElementById('roundFretMinVal').textContent = roundFretMin;
+document.getElementById('roundFretMaxVal').textContent = roundFretMax;
+document.getElementById('roundCountVal').textContent   = roundCount;
 </script>
 </body>
 </html>
